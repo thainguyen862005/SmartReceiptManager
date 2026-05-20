@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572242995350",
+    "project_id": "smart-receipt-manager",
+    "storage_bucket": "smart-receipt-manager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572242995350:android:67f4cd4ac21b8e61367ab7",
+        "android_client_info": {
+          "package_name": "com.example.smartreceiptmanager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFANZMUGtM81BWc6gi7iVI2UEuIiJkXgA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
