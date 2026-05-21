@@ -1,24 +1,31 @@
 package com.example.smartreceiptmanager;
 
 import android.os.Bundle;
-
-import androidx.activity.EdgeToEdge;
+import android.widget.Toast; // Thêm import này để xài Toast thông báo
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.fragment.app.Fragment;
+import com.example.smartreceiptmanager.API_Stacistis.Statistics;
 
 public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+
+        // Hiện tại chỉ mới có trang Thống kê nên tạm thời mở app lên sẽ load trang này trước
+        chuyenFragment(new Statistics());
+
+        // Bắt sự kiện các nút theo phong cách ngắn gọn (Inline) của bạn
+        findViewById(R.id.btnHome).setOnClickListener(v -> Toast.makeText(this, "Đang thiết kế trang Chủ!", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnHistory).setOnClickListener(v -> Toast.makeText(this, "Đang thiết kế trang Lịch sử!", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnStatistics).setOnClickListener(v -> chuyenFragment(new Statistics()));
+        findViewById(R.id.btnQRScan).setOnClickListener(v -> Toast.makeText(this, "Mở Camera Scan hóa đơn!", Toast.LENGTH_SHORT).show());
+    }
+
+    private void chuyenFragment(Fragment fragment) {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .commit();
     }
 }
