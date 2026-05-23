@@ -27,6 +27,8 @@
         android:theme="@style/Theme.SmartReceiptManager">
 
         <activity
+
+            android:name=".AddExpenseActivity"
             android:name=".MainActivity"
             android:exported="true">
 
