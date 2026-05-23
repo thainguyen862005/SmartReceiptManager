@@ -1,73 +1,121 @@
 package com.example.smartreceiptmanager;
 
-import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
-import java.text.NumberFormat;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
-import java.util.Locale;
 
-public class ExpenseAdapter extends BaseAdapter {
-    private final Activity activity;
-    private final ArrayList<Expense> expenses;
-    private final NumberFormat currencyFormat;
+public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder> {
 
-    public ExpenseAdapter(Activity activity, ArrayList<Expense> expenses) {
-        this.activity = activity;
-        this.expenses = expenses;
-        this.currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    private Context context;
+    private ArrayList<Expense> expenseList;
+
+    public ExpenseAdapter(Context context, ArrayList<Expense> expenseList) {
+        this.context = context;
+        this.expenseList = expenseList;
+    }
+
+    @NonNull
+    @Override
+    public ExpenseViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+
+        View view = LayoutInflater.from(context)
+                .inflate(R.layout.item_expense, parent, false);
+
+        return new ExpenseViewHolder(view);
     }
 
     @Override
-    public int getCount() { return expenses.size(); }
+    public void onBindViewHolder(@NonNull ExpenseViewHolder holder, int position) {
 
-    @Override
-    public Object getItem(int position) { return expenses.get(position); }
+        Expense expense = expenseList.get(position);
 
-    @Override
-    public long getItemId(int position) { return expenses.get(position).getId(); }
-
-    static class ViewHolder {
-        TextView txtCategoryIcon, txtTitle, txtAmount, txtInfo, txtNote;
-    }
-
-    @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        ViewHolder holder;
-        if (convertView == null) {
-            convertView = LayoutInflater.from(activity).inflate(R.layout.item_expense, parent, false);
-            holder = new ViewHolder();
-            holder.txtCategoryIcon = convertView.findViewById(R.id.txtCategoryIcon);
-            holder.txtTitle = convertView.findViewById(R.id.txtTitle);
-            holder.txtAmount = convertView.findViewById(R.id.txtAmount);
-            holder.txtInfo = convertView.findViewById(R.id.txtInfo);
-            holder.txtNote = convertView.findViewById(R.id.txtNote);
-            convertView.setTag(holder);
-        } else {
-            holder = (ViewHolder) convertView.getTag();
-        }
-
-        Expense expense = expenses.get(position);
-        holder.txtCategoryIcon.setText(getIcon(expense.getCategory()));
         holder.txtTitle.setText(expense.getTitle());
-        holder.txtAmount.setText(currencyFormat.format(expense.getAmount()));
-        holder.txtInfo.setText(expense.getCategory() + " • " + expense.getDate());
-        holder.txtNote.setText(expense.getNote().isEmpty() ? "Không có ghi chú" : expense.getNote());
-        return convertView;
+
+        holder.txtAmount.setText(
+                String.format("%,.0f VNĐ", expense.getAmount())
+        );
+
+        holder.txtCategory.setText(expense.getCategory());
+
+        holder.txtDate.setText(expense.getDate());
+
+        // =========================
+        // Nút sửa
+        // =========================
+        holder.btnEdit.setOnClickListener(v -> {
+
+            Intent intent = new Intent(context, AddExpenseActivity.class);
+
+            intent.putExtra("id", expense.getId());
+            intent.putExtra("title", expense.getTitle());
+            intent.putExtra("amount", expense.getAmount());
+            intent.putExtra("category", expense.getCategory());
+            intent.putExtra("date", expense.getDate());
+            intent.putExtra("note", expense.getNote());
+
+            context.startActivity(intent);
+        });
+
+        // =========================
+        // Nút xóa
+        // =========================
+        holder.btnDelete.setOnClickListener(v -> {
+
+            new AlertDialog.Builder(context)
+                    .setTitle("Xóa khoản chi")
+                    .setMessage("Bạn có chắc muốn xóa khoản chi này?")
+                    .setPositiveButton("Xóa", (dialog, which) -> {
+
+                        expenseList.remove(position);
+
+                        notifyItemRemoved(position);
+
+                        notifyItemRangeChanged(position, expenseList.size());
+                    })
+                    .setNegativeButton("Hủy", null)
+                    .show();
+        });
     }
 
-    private String getIcon(String category) {
-        if (category == null) return "💳";
-        String c = category.toLowerCase(Locale.ROOT);
-        if (c.contains("ăn") || c.contains("uong") || c.contains("uống")) return "🍜";
-        if (c.contains("học") || c.contains("hoc")) return "📚";
-        if (c.contains("di") || c.contains("chuyển") || c.contains("xăng")) return "🛵";
-        if (c.contains("mua")) return "🛒";
-        if (c.contains("giải") || c.contains("giai")) return "🎮";
-        return "💳";
+    @Override
+    public int getItemCount() {
+        return expenseList.size();
+    }
+
+    // =====================================
+    // ViewHolder
+    // =====================================
+
+    public static class ExpenseViewHolder extends RecyclerView.ViewHolder {
+
+        TextView txtTitle;
+        TextView txtAmount;
+        TextView txtCategory;
+        TextView txtDate;
+
+        ImageButton btnEdit;
+        ImageButton btnDelete;
+
+        public ExpenseViewHolder(@NonNull View itemView) {
+            super(itemView);
+
+            txtTitle = itemView.findViewById(R.id.txtTitle);
+            txtAmount = itemView.findViewById(R.id.txtAmount);
+            txtCategory = itemView.findViewById(R.id.txtCategory);
+            txtDate = itemView.findViewById(R.id.txtDate);
+
+            btnEdit = itemView.findViewById(R.id.btnEdit);
+            btnDelete = itemView.findViewById(R.id.btnDelete);
+        }
     }
 }
