@@ -1,13 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/app_background"
-    android:fillViewport="true"
-    tools:context=".MainActivity">
+    android:background="@color/background_light">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,65 +11,41 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:text="Quản lý khoản chi"
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Xin chào 👋"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Smart Receipt"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/bg_circle_primary"
-                android:gravity="center"
-                android:text="SR"
-                android:textColor="@android:color/white"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Theo dõi chi tiêu từ hóa đơn của bạn"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="16dp"
             app:cardBackgroundColor="@color/primary_blue"
-            app:cardCornerRadius="24dp"
+            app:cardCornerRadius="22dp"
             app:cardElevation="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="18dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Tổng chi tiêu"
-                    android:textColor="#DCEBFF"
+                    android:textColor="@android:color/white"
                     android:textSize="15sp" />
 
                 <TextView
@@ -81,7 +53,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="0 đ"
+                    android:text="0 ₫"
                     android:textColor="@android:color/white"
                     android:textSize="28sp"
                     android:textStyle="bold" />
@@ -92,7 +64,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="0 khoản chi"
-                    android:textColor="#DCEBFF"
+                    android:textColor="#EAF3FF"
                     android:textSize="14sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -100,14 +72,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="14dp"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/btnAddExpense"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
-                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_button_primary"
                 android:text="+ Thêm khoản chi"
@@ -119,7 +90,7 @@
                 android:id="@+id/btnScan"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="10dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_button_outline"
                 android:text="Quét hóa đơn"
@@ -131,21 +102,21 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="Khoản chi gần đây"
+            android:layout_marginTop="20dp"
+            android:text="Danh sách khoản chi"
             android:textColor="@color/text_primary"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/txtEmpty"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_card"
             android:gravity="center"
-            android:padding="24dp"
-            android:text="Chưa có khoản chi nào. Hãy thêm khoản chi đầu tiên của bạn."
+            android:padding="18dp"
+            android:text="Chưa có khoản chi nào"
             android:textColor="@color/text_secondary"
             android:textSize="15sp"
             android:visibility="gone" />
@@ -153,11 +124,10 @@
         <ListView
             android:id="@+id/listExpense"
             android:layout_width="match_parent"
-            android:layout_height="560dp"
+            android:layout_height="420dp"
             android:layout_marginTop="10dp"
-            android:clipToPadding="false"
             android:divider="@android:color/transparent"
-            android:dividerHeight="12dp"
-            android:paddingBottom="12dp" />
+            android:dividerHeight="10dp"
+            android:nestedScrollingEnabled="true" />
     </LinearLayout>
 </ScrollView>
