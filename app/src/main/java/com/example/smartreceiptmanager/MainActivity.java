@@ -5,6 +5,7 @@ import android.widget.Toast; // Thêm import này để xài Toast thông báo
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.example.smartreceiptmanager.API_Stacistis.Statistics;
+import com.example.smartreceiptmanager.scanbill.ScanBillFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnHome).setOnClickListener(v -> Toast.makeText(this, "Đang thiết kế trang Chủ!", Toast.LENGTH_SHORT).show());
         findViewById(R.id.btnHistory).setOnClickListener(v -> Toast.makeText(this, "Đang thiết kế trang Lịch sử!", Toast.LENGTH_SHORT).show());
         findViewById(R.id.btnStatistics).setOnClickListener(v -> chuyenFragment(new Statistics()));
-        findViewById(R.id.btnQRScan).setOnClickListener(v -> Toast.makeText(this, "Mở Camera Scan hóa đơn!", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnQRScan).setOnClickListener(v -> chuyenFragment(new ScanBillFragment()));
     }
 
     private void chuyenFragment(Fragment fragment) {
@@ -28,4 +29,5 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_container, fragment)
                 .commit();
     }
+
 }
