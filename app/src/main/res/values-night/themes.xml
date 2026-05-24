@@ -1,7 +1,4 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
     <style name="Base.Theme.SmartReceiptManager" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
-    </style>
+        <item name="colorPrimary">#00A86B</item> <item name="android:windowBackground">#121212</item> <item name="colorSurface">#1E1E1E</item> <item name="colorOnSurface">#FFFFFF</item> <item name="colorOnSurfaceVariant">#B0B0B0</item> </style>
 </resources>
