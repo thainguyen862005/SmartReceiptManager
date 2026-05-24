@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Camera Preview -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:scaleType="fillCenter" />
+
+    <!-- Dark overlay top -->
+    <View
+        android:id="@+id/overlayTop"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#99000000"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/scanFrame" />
+
+    <!-- Dark overlay bottom -->
+    <View
+        android:id="@+id/overlayBottom"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#99000000"
+        app:layout_constraintTop_toBottomOf="@id/scanFrame"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- Dark overlay left -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#99000000"
+        app:layout_constraintTop_toTopOf="@id/scanFrame"
+        app:layout_constraintBottom_toBottomOf="@id/scanFrame"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/scanFrame" />
+
+    <!-- Dark overlay right -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#99000000"
+        app:layout_constraintTop_toTopOf="@id/scanFrame"
+        app:layout_constraintBottom_toBottomOf="@id/scanFrame"
+        app:layout_constraintStart_toEndOf="@id/scanFrame"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Scan Frame (transparent window) -->
+    <com.example.smartreceiptmanager.scanbill.ScanFrameView
+        android:id="@+id/scanFrame"
+        android:layout_width="280dp"
+        android:layout_height="380dp"
+        app:layout_constraintTop_toBottomOf="@id/tvHint"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.45" />
+
+    <!-- Laser scan line (animated) -->
+    <View
+        android:id="@+id/scanLine"
+        android:layout_width="0dp"
+        android:layout_height="2dp"
+        android:background="@drawable/scan_line_gradient"
+        app:layout_constraintTop_toTopOf="@id/scanFrame"
+        app:layout_constraintStart_toStartOf="@id/scanFrame"
+        app:layout_constraintEnd_toEndOf="@id/scanFrame" />
+
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back_white"
+            android:contentDescription="Quay lại" />
+
+        <ImageButton
+            android:id="@+id/btnFlash"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_flash_off"
+            android:contentDescription="Đèn flash" />
+
+    </androidx.appcompat.widget.Toolbar>
+
+    <!-- Hint text -->
+    <TextView
+        android:id="@+id/tvHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Căn chỉnh hóa đơn vào khung"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:background="@drawable/bg_hint_pill"
+        android:drawableStart="@drawable/ic_scan_frame_small"
+        android:drawablePadding="8dp"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Bottom bar -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="0dp"
+        android:layout_height="120dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Gallery button -->
+        <ImageButton
+            android:id="@+id/btnGallery"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="40dp"
+            android:background="@drawable/bg_circle_translucent"
+            android:src="@drawable/ic_photo_library"
+            android:padding="10dp"
+            android:contentDescription="Chọn từ thư viện" />
+
+        <!-- Capture button -->
+        <FrameLayout
+            android:layout_width="72dp"
+            android:layout_height="72dp">
+
+            <View
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:background="@drawable/bg_capture_outer" />
+
+            <ImageButton
+                android:id="@+id/btnCapture"
+                android:layout_width="58dp"
+                android:layout_height="58dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_capture_inner"
+                android:src="@drawable/ic_camera_shutter"
+                android:contentDescription="Chụp hóa đơn" />
+
+        </FrameLayout>
+
+        <!-- Auto / Manual toggle -->
+        <ImageButton
+            android:id="@+id/btnAutoManual"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="40dp"
+            android:background="@drawable/bg_circle_translucent"
+            android:src="@drawable/ic_auto_mode"
+            android:padding="10dp"
+            android:contentDescription="Chế độ tự động/thủ công" />
+
+    </LinearLayout>
+
+    <!-- Status: Detecting / Found -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="Đang tìm kiếm hóa đơn..."
+        android:textColor="#CCFFFFFF"
+        android:textSize="13sp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
