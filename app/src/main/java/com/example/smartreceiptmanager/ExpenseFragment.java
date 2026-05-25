@@ -5,8 +5,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.recyclerview.widget.RecyclerView;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,7 +22,7 @@ import java.util.Locale;
 public class ExpenseFragment extends Fragment {
 
     private TextView txtTotal, txtCount, txtEmpty;
-    private ListView listExpense;
+    private RecyclerView listExpense;
     private ExpenseAdapter adapter;
     private ArrayList<Expense> expenses;
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
@@ -57,19 +57,6 @@ public class ExpenseFragment extends Fragment {
         btnScan.setOnClickListener(v ->
                 Toast.makeText(requireContext(), "Chức năng quét hóa đơn sẽ được tích hợp ở module OCR", Toast.LENGTH_SHORT).show()
         );
-
-        listExpense.setOnItemClickListener((parent, itemView, position, id) -> {
-            Expense expense = (Expense) adapter.getItem(position);
-            Intent intent = new Intent(requireContext(), AddExpenseActivity.class);
-            intent.putExtra("expense_id", expense.getId());
-            startActivity(intent);
-        });
-
-        listExpense.setOnItemLongClickListener((parent, itemView, position, id) -> {
-            Expense expense = (Expense) adapter.getItem(position);
-            showDeleteDialog(expense);
-            return true;
-        });
     }
 
     @Override
