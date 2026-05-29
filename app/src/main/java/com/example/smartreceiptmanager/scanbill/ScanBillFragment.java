@@ -64,7 +64,8 @@ public class ScanBillFragment extends Fragment {
 
     private void setupClickListeners() {
         binding.btnBack.setOnClickListener(v ->
-                requireActivity().getOnBackPressedDispatcher().onBackPressed());
+//                requireActivity().getOnBackPressedDispatcher().onBackPressed());
+                requireActivity().findViewById(R.id.custom_bottom_nav).setVisibility(View.VISIBLE));
 
         binding.btnFlash.setOnClickListener(v -> {
             isFlashOn = !isFlashOn;
