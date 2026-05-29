@@ -1,9 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
     <style name="Base.Theme.SmartReceiptManager" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-    </style>
+        <item name="colorPrimary">#00693E</item> <item name="android:windowBackground">#F8F9FA</item> <item name="colorSurface">#FFFFFF</item> <item name="colorOnSurface">#1A1A1A</item> <item name="colorOnSurfaceVariant">#757575</item> </style>
 
     <style name="Theme.SmartReceiptManager" parent="Base.Theme.SmartReceiptManager" />
 </resources>

@@ -1,5 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="green_primary">#00693E</color>
+    <color name="green_light">#E6F0EB</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <color name="bg_background">#F8F9FA</color>
+    <color name="bg_surface">#FFFFFF</color>
+    <color name="text_main">#1A1A1A</color>
+    <color name="text_secondary">#757575</color>
+    <color name="bg_logout_btn">#FFEAEA</color>
+    <color name="text_logout_btn">#C62828</color>
 </resources>
