@@ -13,10 +13,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Smart Receipt Manager"
-            android:textColor="#0056B3"
+            android:textColor="?attr/colorSecondary"
             android:textSize="18sp"
             android:textStyle="bold"
             android:layout_centerVertical="true"/>
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_popup_reminder"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            app:tint="?attr/colorSecondary"/>
     </RelativeLayout>
 
     <LinearLayout
@@ -28,18 +35,33 @@
 
         <RelativeLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/imgAvatar"
                 android:layout_width="100dp"
                 android:layout_height="100dp"
                 android:src="@android:drawable/sym_def_app_icon"
-                app:shapeAppearanceOverlay="@style/Widget.MaterialComponents.ColorDisplayBackground"
-                android:scaleType="centerCrop"/>
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/CircleImageView"/>
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBottom="@id/imgAvatar"
+                android:layout_alignEnd="@id/imgAvatar"
+                android:layout_marginEnd="-8dp"
+                android:layout_marginBottom="-8dp"
+                app:fabSize="mini"
+                android:src="@android:drawable/ic_menu_edit"
+                app:backgroundTint="?attr/colorSecondary"
+                app:tint="#FFFFFF"
+                app:elevation="4dp" />
         </RelativeLayout>
 
         <TextView
-            android:id="@+id/tvProfileName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Nguyen Van Anh"
@@ -49,12 +71,21 @@
             android:layout_marginTop="12dp"/>
 
         <TextView
-            android:id="@+id/tvProfileEmail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="nguyenvananh@gmail.com"
+            android:text="nguyen.anh@example.com"
             android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="14sp"/>
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✓ Tài khoản Pro"
+            android:background="?attr/colorSecondaryContainer"
+            android:textColor="?attr/colorSecondary"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"/>
     </LinearLayout>
 
     <LinearLayout
@@ -75,7 +106,7 @@
                 android:layout_height="64dp"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cài đặt tài khoản" android:textColor="?attr/colorOnSurface" android:textStyle="bold"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cài đặt tài khoản" android:textColor="?attr/colorOnSurface" android:textStyle="bold"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -90,7 +121,36 @@
                 android:layout_height="64dp"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Đồng bộ dữ liệu" android:textColor="?attr/colorOnSurface" android:textStyle="bold"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cài đặt thông báo" android:textColor="?attr/colorOnSurface" android:textStyle="bold"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/itemTheme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="?attr/colorSurface">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Giao diện ứng dụng"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textStyle="bold"/>
+                <TextView
+                    android:id="@+id/tvCurrentTheme"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hệ thống"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
