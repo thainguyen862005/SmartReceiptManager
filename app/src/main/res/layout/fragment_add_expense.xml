@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F8F9FA">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:paddingBottom="108dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="30dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="88dp">
+
+                <TextView
+                    android:id="@+id/btnClose"
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:layout_centerVertical="true"
+                    android:gravity="center"
+                    android:text="×"
+                    android:textColor="#1D1F20"
+                    android:textSize="32sp" />
+
+                <TextView
+                    android:id="@+id/txtScreenTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_centerInParent="true"
+                    android:gravity="center"
+                    android:text="Thêm chi tiêu"
+                    android:textColor="#1D1F20"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:gravity="center"
+                android:text="SỐ TIỀN"
+                android:textColor="#435047"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="86dp"
+                android:layout_marginHorizontal="32dp"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="36dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="đ"
+                    android:textColor="#1D1F20"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/edtAmount"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:backgroundTint="#006F49"
+                    android:gravity="center"
+                    android:hint="0"
+                    android:includeFontPadding="false"
+                    android:inputType="number"
+                    android:maxLines="1"
+                    android:paddingHorizontal="0dp"
+                    android:singleLine="true"
+                    android:textColor="#006F49"
+                    android:textColorHint="#D9D9D9"
+                    android:textSize="36sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/edtMerchant"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="34dp"
+                android:text="Danh mục"
+                android:textColor="#1D1F20"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="108dp"
+                android:layout_marginTop="18dp"
+                android:orientation="horizontal"
+                android:weightSum="4">
+
+                <LinearLayout
+                    android:id="@+id/cardFood"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_category_selector"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:background="@drawable/bg_avatar_green"
+                        android:gravity="center"
+                        android:text="🍴"
+                        android:textColor="@android:color/white"
+                        android:textSize="22sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="Ăn\nuống"
+                        android:textColor="#435047"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/cardTransport"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_category_normal_figma"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:background="@drawable/bg_avatar_gray"
+                        android:gravity="center"
+                        android:text="🚗"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="Di\nchuyển"
+                        android:textColor="#435047"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/cardShopping"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_category_normal_figma"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:background="@drawable/bg_avatar_gray"
+                        android:gravity="center"
+                        android:text="🛍"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="Mua\nsắm"
+                        android:textColor="#435047"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/cardBill"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_category_normal_figma"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:background="@drawable/bg_avatar_gray"
+                        android:gravity="center"
+                        android:text="🧾"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="Hóa\nđơn"
+                        android:textColor="#435047"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutDate"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="32dp"
+                android:background="@drawable/bg_input_figma"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="30dp">
+
+                <TextView
+                    android:layout_width="44dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="▦"
+                    android:textColor="#435047"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/txtDate"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="22dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:text="Hôm nay, 24 Th10 2023"
+                    android:textColor="#1D1F20"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="132dp"
+                android:layout_marginTop="32dp"
+                android:background="@drawable/bg_input_figma"
+                android:orientation="horizontal"
+                android:padding="30dp">
+
+                <TextView
+                    android:layout_width="44dp"
+                    android:layout_height="match_parent"
+                    android:text="☰"
+                    android:textColor="#435047"
+                    android:textSize="22sp" />
+
+                <EditText
+                    android:id="@+id/edtNote"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="22dp"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:gravity="top"
+                    android:hint="Thêm ghi chú..."
+                    android:textColor="#1D1F20"
+                    android:textColorHint="#435047"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/edtReceiptText"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="94dp"
+        android:layout_gravity="bottom"
+        android:background="#F8F9FA"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="30dp"
+        android:paddingBottom="14dp">
+
+        <TextView
+            android:id="@+id/btnDeleteExpense"
+            android:layout_width="112dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="14dp"
+            android:background="@drawable/bg_danger_button"
+            android:gravity="center"
+            android:text="Xóa"
+            android:textColor="#B9181E"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/btnSaveExpense"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_green_button"
+            android:gravity="center"
+            android:text="Lưu chi tiêu"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</FrameLayout>
