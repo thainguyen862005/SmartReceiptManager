@@ -74,11 +74,7 @@ public class HomeFragment extends Fragment {
         });
 
         view.findViewById(R.id.btnViewAll).setOnClickListener(v -> {
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, new ExpenseListFragment())
-                    .commit();
+            requireActivity().findViewById(R.id.btnHistory).performClick();
         });
 
         renderExpenses();

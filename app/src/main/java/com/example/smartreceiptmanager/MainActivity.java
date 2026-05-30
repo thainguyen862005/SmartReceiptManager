@@ -8,7 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import com.example.smartreceiptmanager.API_Stacistis.Statistics;
+import com.example.smartreceiptmanager.statistics.StatisticsFragment;
 import com.example.smartreceiptmanager.expense.ExpenseListFragment;
 import com.example.smartreceiptmanager.home.HomeFragment;
 import com.example.smartreceiptmanager.scanbill.ScanBillFragment;
@@ -42,13 +42,36 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btnStatistics).setOnClickListener(v -> {
-            chuyenFragment(new Statistics());
+            chuyenFragment(new StatisticsFragment());
             setActiveTab(TAB_STATISTICS);
         });
 
         findViewById(R.id.btnQRScan).setOnClickListener(v -> {
             chuyenFragment(new ScanBillFragment());
             setActiveTab(TAB_SCAN);
+        });
+
+        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+            Fragment current = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+
+            View bottomNav = findViewById(R.id.custom_bottom_nav);
+
+            if (current instanceof com.example.smartreceiptmanager.expense.AddExpenseFragment
+                    || current instanceof com.example.smartreceiptmanager.expense.ExpenseDetailFragment) {
+                bottomNav.setVisibility(View.GONE);
+            } else {
+                bottomNav.setVisibility(View.VISIBLE);
+            }
+
+            if (current instanceof com.example.smartreceiptmanager.home.HomeFragment) {
+                setActiveTab(TAB_HOME);
+            } else if (current instanceof com.example.smartreceiptmanager.expense.ExpenseListFragment) {
+                setActiveTab(TAB_HISTORY);
+            } else if (current instanceof com.example.smartreceiptmanager.scanbill.ScanBillFragment) {
+                setActiveTab(TAB_SCAN);
+            } else if (current instanceof StatisticsFragment) {
+                setActiveTab(TAB_STATISTICS);
+            }
         });
     }
 
