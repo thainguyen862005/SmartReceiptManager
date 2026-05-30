@@ -1,4 +1,15 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.SmartReceiptManager" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#00A86B</item> <item name="android:windowBackground">#121212</item> <item name="colorSurface">#1E1E1E</item> <item name="colorOnSurface">#FFFFFF</item> <item name="colorOnSurfaceVariant">#B0B0B0</item> </style>
+        <item name="colorPrimary">#00A86B</item>
+        <item name="colorSecondary">#6CA6CD</item>
+        <item name="colorSecondaryContainer">#1A365D</item>
+
+        <item name="android:windowBackground">#121212</item>
+        <item name="colorSurface">#1E1E1E</item>
+        <item name="colorOnSurface">#FFFFFF</item>
+        <item name="colorOnSurfaceVariant">#B0B0B0</item>
+    </style>
+    <style name="CircleImageView" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
 </resources>
