@@ -6,11 +6,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast; // Thêm import này để xài Toast thông báo
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import com.example.smartreceiptmanager.API_Stacistis.Statistics;
+import com.example.smartreceiptmanager.expense.ExpenseListFragment;
 import com.example.smartreceiptmanager.home.HomeFragment;
 import com.example.smartreceiptmanager.scanbill.ScanBillFragment;
 
@@ -38,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btnHistory).setOnClickListener(v -> {
-            Toast.makeText(this, "Đang thiết kế trang Lịch sử!", Toast.LENGTH_SHORT).show();
+            chuyenFragment(new ExpenseListFragment());
             setActiveTab(TAB_HISTORY);
         });
 
