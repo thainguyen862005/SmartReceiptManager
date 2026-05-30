@@ -35,7 +35,8 @@ public class ExpenseListFragment extends Fragment {
         expenseStore = new ExpenseStore(requireContext());
         txtEmpty = view.findViewById(R.id.txtEmptyExpenseList);
         layoutAllExpenses = view.findViewById(R.id.layoutAllExpenses);
-        view.findViewById(R.id.btnAddExpenseHistory).setOnClickListener(v -> openAddExpense());
+
+        // Đã xóa dòng setOnClickListener của nút btnAddExpenseHistory vì nút đã bị xóa bên XML
 
         renderExpenses();
     }
@@ -91,20 +92,6 @@ public class ExpenseListFragment extends Fragment {
         header.setTypeface(null, android.graphics.Typeface.BOLD);
         header.setPadding(0, 18, 0, 14);
         return header;
-    }
-
-    private void openAddExpense() {
-        requireActivity()
-                .getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, new AddExpenseFragment())
-                .addToBackStack(null)
-                .commit();
-
-        View bottomNav = requireActivity().findViewById(R.id.custom_bottom_nav);
-        if (bottomNav != null) {
-            bottomNav.setVisibility(View.GONE);
-        }
     }
 
     private void openExpenseDetail(String expenseId) {

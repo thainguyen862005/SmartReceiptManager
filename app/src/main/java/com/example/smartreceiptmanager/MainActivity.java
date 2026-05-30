@@ -12,6 +12,7 @@ import com.example.smartreceiptmanager.statistics.StatisticsFragment;
 import com.example.smartreceiptmanager.expense.ExpenseListFragment;
 import com.example.smartreceiptmanager.home.HomeFragment;
 import com.example.smartreceiptmanager.scanbill.ScanBillFragment;
+import com.example.smartreceiptmanager.expense.AddExpenseFragment; // Thêm import này
 
 
 public class MainActivity extends AppCompatActivity {
@@ -39,6 +40,14 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnHistory).setOnClickListener(v -> {
             chuyenFragment(new ExpenseListFragment());
             setActiveTab(TAB_HISTORY);
+        });
+
+        // === ĐÃ BỔ SUNG: Bắt sự kiện click nút Cộng (+) ở đây ===
+        findViewById(R.id.btnAdd).setOnClickListener(v -> {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new AddExpenseFragment())
+                    .addToBackStack(null) // Thêm vào BackStack để hàm lắng nghe ở dưới bắt được sự kiện và tự ẩn Bottom Nav
+                    .commit();
         });
 
         findViewById(R.id.btnStatistics).setOnClickListener(v -> {
