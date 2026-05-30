@@ -13,10 +13,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.smartreceiptmanager.R;
-import com.example.smartreceiptmanager.expense.AddExpenseFragment;
 import com.example.smartreceiptmanager.expense.Expense;
 import com.example.smartreceiptmanager.expense.ExpenseDetailFragment;
-import com.example.smartreceiptmanager.expense.ExpenseListFragment;
 import com.example.smartreceiptmanager.expense.ExpenseStore;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
@@ -57,22 +55,9 @@ public class HomeFragment extends Fragment {
         txtEmptyExpense = view.findViewById(R.id.txtEmptyExpense);
         layoutExpenseList = view.findViewById(R.id.layoutExpenseList);
 
-        View btnAddExpense = view.findViewById(R.id.btnAddExpense);
+        // ĐÃ XÓA KHỐI CODE btnAddExpense TẠI ĐÂY ĐỂ TRÁNH LỖI CRASH ỨNG DỤNG
 
-        btnAddExpense.setOnClickListener(v -> {
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, new AddExpenseFragment())
-                    .addToBackStack(null)
-                    .commit();
-
-            View bottomNav = requireActivity().findViewById(R.id.custom_bottom_nav);
-            if (bottomNav != null) {
-                bottomNav.setVisibility(View.GONE);
-            }
-        });
-
+        // Nút "Xem tất cả" vẫn giữ lại hoạt động bình thường để nhảy sang tab Lịch sử
         view.findViewById(R.id.btnViewAll).setOnClickListener(v -> {
             requireActivity().findViewById(R.id.btnHistory).performClick();
         });

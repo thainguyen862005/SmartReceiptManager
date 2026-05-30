@@ -8,10 +8,9 @@
     android:elevation="10dp"
     android:gravity="center"
     android:orientation="horizontal"
-    android:paddingHorizontal="8dp"
+    android:paddingHorizontal="4dp"
     android:paddingVertical="8dp">
 
-    <!-- Trang chủ -->
     <LinearLayout
         android:id="@+id/btnHome"
         android:layout_width="0dp"
@@ -23,7 +22,7 @@
             android:id="@+id/layoutHomeContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="4dp"
+            android:layout_marginHorizontal="2dp"
             android:background="@drawable/bg_bottom_nav_active"
             android:gravity="center"
             android:orientation="vertical">
@@ -44,11 +43,9 @@
                 android:textColor="@color/primary_green"
                 android:textSize="11sp"
                 android:textStyle="bold" />
-
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Lịch sử -->
     <LinearLayout
         android:id="@+id/btnHistory"
         android:layout_width="0dp"
@@ -60,7 +57,7 @@
             android:id="@+id/layoutHistoryContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="4dp"
+            android:layout_marginHorizontal="2dp"
             android:background="@drawable/bg_bottom_nav_normal"
             android:gravity="center"
             android:orientation="vertical">
@@ -80,11 +77,45 @@
                 android:text="Lịch sử"
                 android:textColor="#333333"
                 android:textSize="11sp" />
-
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Quét -->
+    <LinearLayout
+        android:id="@+id/btnAdd"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center">
+
+        <LinearLayout
+            android:id="@+id/layoutAddContent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/iconAdd"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_circle_green"
+                android:gravity="center"
+                android:text="+"
+                android:textColor="@android:color/white"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtAdd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Thêm"
+                android:textColor="#333333"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/btnQRScan"
         android:layout_width="0dp"
@@ -96,7 +127,7 @@
             android:id="@+id/layoutScanContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="4dp"
+            android:layout_marginHorizontal="2dp"
             android:background="@drawable/bg_bottom_nav_normal"
             android:gravity="center"
             android:orientation="vertical">
@@ -116,11 +147,9 @@
                 android:text="Quét"
                 android:textColor="#333333"
                 android:textSize="11sp" />
-
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Thống kê -->
     <LinearLayout
         android:id="@+id/btnStatistics"
         android:layout_width="0dp"
@@ -132,7 +161,7 @@
             android:id="@+id/layoutStatisticsContent"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginHorizontal="4dp"
+            android:layout_marginHorizontal="2dp"
             android:background="@drawable/bg_bottom_nav_normal"
             android:gravity="center"
             android:orientation="vertical">
@@ -152,7 +181,6 @@
                 android:text="Thống kê"
                 android:textColor="#333333"
                 android:textSize="11sp" />
-
         </LinearLayout>
     </LinearLayout>
 
