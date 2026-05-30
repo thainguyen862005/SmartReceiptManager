@@ -47,7 +47,7 @@ public class ExpenseDetailFragment extends Fragment {
 
         ((TextView) view.findViewById(R.id.txtCategoryPill)).setText(getCategoryIcon(expense.getCategory()) + "  " + expense.getCategory());
         ((TextView) view.findViewById(R.id.txtDetailAmount)).setText("-" + CurrencyUtils.formatVnd(expense.getAmount()));
-        ((TextView) view.findViewById(R.id.txtDetailDate)).setText("▦ " + DateUtils.formatDate(expense.getDate()) + ", 12:30 PM");
+        ((TextView) view.findViewById(R.id.txtDetailDate)).setText("▦ " + DateUtils.formatDateTime(expense.getDate()));
 
         String note = expense.getNote();
         if (note == null || note.trim().isEmpty()) {

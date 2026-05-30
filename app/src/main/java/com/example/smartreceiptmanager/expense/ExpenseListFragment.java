@@ -132,10 +132,7 @@ public class ExpenseListFragment extends Fragment {
     }
 
     private String getGroupTitle(Expense expense, int index) {
-        if (index < 2) {
-            return "Hôm nay, 24 Tháng 10";
-        }
-        return "Hôm qua, 23 Tháng 10";
+        return DateUtils.formatDate(expense.getDate());
     }
 
     private String getTimeText(Expense expense, int index) {

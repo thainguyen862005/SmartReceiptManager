@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.github.com/com/android/tools"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F8F9FA"
-    tools:context=".BlankFragment">
+    tools:context=".statistics.StatisticsFragment">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="90dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -97,17 +99,62 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
-                    <FrameLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
-                        android:layout_marginTop="16dp">
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="140dp"
+                            android:layout_height="140dp"
+                            android:background="@drawable/bg_chart_circle_placeholder"
+                            android:gravity="center"
+                            android:text="Tổng\n12.5M"
+                            android:textColor="#006A4E"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:text="[Khu vực vẽ Biểu đồ Tròn]"
-                            android:textColor="#9E9E9E"/>
-                    </FrameLayout>
+                            android:layout_marginStart="20dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="●  Ăn uống    40%"
+                                android:textColor="#006A4E"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:text="●  Di chuyển  30%"
+                                android:textColor="#3FA77A"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:text="●  Mua sắm    20%"
+                                android:textColor="#6B8DE3"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:text="●  Khác       10%"
+                                android:textColor="#E38B8B"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -132,17 +179,56 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
-                    <FrameLayout
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="150dp"
-                        android:layout_marginTop="16dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:text="[Khu vực vẽ Biểu đồ Cột]"
-                            android:textColor="#9E9E9E"/>
-                    </FrameLayout>
+                        android:layout_marginTop="16dp"
+                        android:gravity="bottom"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="8dp">
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_bar_light" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="86dp"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_bar_light" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="68dp"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_bar_light" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="112dp"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_bar_active" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="74dp"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_bar_light" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="96dp"
+                            android:layout_marginHorizontal="5dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_bar_light" />
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

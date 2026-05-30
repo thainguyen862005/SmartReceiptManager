@@ -24,6 +24,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.smartreceiptmanager.R;
 import com.example.smartreceiptmanager.databinding.FragmentScanBillBinding;
+import com.example.smartreceiptmanager.expense.AutoCategoryFragment;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.ExecutorService;
@@ -63,9 +64,15 @@ public class ScanBillFragment extends Fragment {
     }
 
     private void setupClickListeners() {
-        binding.btnBack.setOnClickListener(v ->
-//                requireActivity().getOnBackPressedDispatcher().onBackPressed());
-                requireActivity().findViewById(R.id.custom_bottom_nav).setVisibility(View.VISIBLE));
+        binding.btnBack.setOnClickListener(v -> {
+            requireActivity()
+                    .getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new com.example.smartreceiptmanager.home.HomeFragment())
+                    .commit();
+
+            requireActivity().findViewById(R.id.custom_bottom_nav).setVisibility(View.VISIBLE);
+        });
 
         binding.btnFlash.setOnClickListener(v -> {
             isFlashOn = !isFlashOn;
@@ -118,13 +125,43 @@ public class ScanBillFragment extends Fragment {
     }
 
     private void captureImage() {
+        //TEST Tạm
         if (imageCapture == null) return;
+
         binding.tvStatus.setText("Đang xử lý hóa đơn...");
-        // TODO: imageCapture.takePicture(...) -> navigate sang màn kết quả
+
+        AutoCategoryFragment fragment = AutoCategoryFragment.newInstance(
+                "Highlands Coffee",
+                150000,
+                System.currentTimeMillis(),
+                "Highlands Coffee\nTổng cộng: 150000"
+        );
+
+        requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void openGallery() {
-        // TODO: launch image picker Intent
+        //TEST tạm
+        binding.tvStatus.setText("Đang xử lý ảnh từ thư viện...");
+
+        AutoCategoryFragment fragment = AutoCategoryFragment.newInstance(
+                "Co.opmart",
+                245000,
+                System.currentTimeMillis(),
+                "Co.opmart\nTổng thanh toán: 245000"
+        );
+
+        requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private void startScanLineAnimation() {

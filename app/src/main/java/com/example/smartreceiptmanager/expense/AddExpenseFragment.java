@@ -27,6 +27,7 @@ public class AddExpenseFragment extends Fragment {
     private static final String ARG_OCR_MERCHANT = "ocr_merchant";
     private static final String ARG_OCR_DATE = "ocr_date";
     private static final String ARG_OCR_TEXT = "ocr_text";
+    private static final String ARG_CATEGORY = "category";
 
     private EditText edtAmount;
     private EditText edtMerchant;
@@ -51,19 +52,26 @@ public class AddExpenseFragment extends Fragment {
         return fragment;
     }
 
-    public static AddExpenseFragment newFromOcr(String merchant, double amount, long date, String receiptText) {
+    public static AddExpenseFragment newFromOcr(
+            String merchant,
+            double amount,
+            long date,
+            String receiptText,
+            String category
+    ) {
         AddExpenseFragment fragment = new AddExpenseFragment();
         Bundle args = new Bundle();
         args.putString(ARG_OCR_MERCHANT, merchant);
         args.putDouble(ARG_OCR_AMOUNT, amount);
         args.putLong(ARG_OCR_DATE, date);
         args.putString(ARG_OCR_TEXT, receiptText);
+        args.putString(ARG_CATEGORY, category);
         fragment.setArguments(args);
         return fragment;
     }
 
     public AddExpenseFragment() {
-        // Required empty public constructor
+
     }
 
     @Override
@@ -185,16 +193,22 @@ public class AddExpenseFragment extends Fragment {
                 double amount = args.getDouble(ARG_OCR_AMOUNT, 0);
                 long date = args.getLong(ARG_OCR_DATE, 0);
                 String receiptText = args.getString(ARG_OCR_TEXT, "");
+                String category = args.getString(ARG_CATEGORY, "Ăn uống");
 
                 edtMerchant.setText(merchant);
+
                 if (amount > 0) {
                     edtAmount.setText(String.valueOf((long) amount));
                 }
+
                 if (date > 0) {
                     selectedDate = date;
                 }
+
                 edtReceiptText.setText(receiptText);
                 edtReceiptText.setVisibility(receiptText.trim().isEmpty() ? View.GONE : View.VISIBLE);
+
+                selectCategory(category);
             }
         }
 
@@ -279,7 +293,9 @@ public class AddExpenseFragment extends Fragment {
     private void closeScreen() {
         requireActivity()
                 .getSupportFragmentManager()
-                .popBackStack();
+                .beginTransaction()
+                .replace(R.id.fragment_container, new com.example.smartreceiptmanager.home.HomeFragment())
+                .commit();
 
         View bottomNav = requireActivity().findViewById(R.id.custom_bottom_nav);
         if (bottomNav != null) {
