@@ -9,7 +9,7 @@
         <item name="colorOnSurface">#FFFFFF</item>
         <item name="colorOnSurfaceVariant">#B0B0B0</item>
     </style>
-    <style name="CircleImageView" parent="">
+    <style name="CircleImageView">
         <item name="cornerSize">50%</item>
     </style>
 </resources>
