@@ -40,6 +40,8 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:$camerax_version"
     implementation "androidx.camera:camera-view:$camerax_version"
 
+    implementation 'com.google.mlkit:barcode-scanning:17.2.0'
+    implementation 'com.google.mlkit:text-recognition:16.0.0'
     // Guava (Required for ListenableFuture used by CameraX)
     implementation 'com.google.guava:guava:33.3.1-android'
 

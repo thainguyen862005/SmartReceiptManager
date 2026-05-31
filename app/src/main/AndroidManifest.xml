@@ -11,6 +11,13 @@
     <!-- Quyền Camera để chụp hóa đơn -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Quyền đọc ảnh Android 13+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- Quyền đọc ảnh Android 12 trở xuống -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <!-- Khai báo app có dùng camera, nhưng không bắt buộc thiết bị phải có camera -->
     <uses-feature
         android:name="android.hardware.camera"
