@@ -3,10 +3,6 @@ package com.example.smartreceiptmanager.auth;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Model đại diện cho thông tin user lưu trên Firestore (hoặc Realtime DB).
- * Collection path: users/{uid}
- */
 public class UserProfile {
     private String email;
     private String phone_number;
@@ -16,7 +12,6 @@ public class UserProfile {
     private Profile profile;
 
     public UserProfile() {
-        // Required for Firebase
         this.profile = new Profile();
     }
 
