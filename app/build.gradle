@@ -78,6 +78,10 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore'
     implementation 'com.google.firebase:firebase-database'
 
+    //gg & fb
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
+    implementation 'com.facebook.android:facebook-login:17.0.0'
+
     // ML Kit Text Recognition
     implementation 'com.google.mlkit:text-recognition:16.0.1'
 

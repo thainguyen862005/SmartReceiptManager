@@ -9,4 +9,7 @@
     <string name="btn_capture">Chụp hóa đơn</string>
     <string name="btn_auto_manual">Chế độ tự động/thủ công</string>
     <string name="status_searching">Đang tìm kiếm hóa đơn...</string>
+    <string name="facebook_app_id">2002220130665802</string>
+    <string name="facebook_client_token">044e7ade1f7bb0b8ff871e32f6a3a396</string>
+    <string name="fb_login_protocol_scheme">fb2002220130665802</string>
 </resources>

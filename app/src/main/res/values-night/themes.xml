@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.SmartReceiptManager" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">#00A86B</item>
@@ -9,7 +10,10 @@
         <item name="colorOnSurface">#FFFFFF</item>
         <item name="colorOnSurfaceVariant">#B0B0B0</item>
     </style>
+
     <style name="CircleImageView">
         <item name="cornerSize">50%</item>
     </style>
+
+    <style name="Theme.SmartReceiptManager" parent="Base.Theme.SmartReceiptManager" />
 </resources>
