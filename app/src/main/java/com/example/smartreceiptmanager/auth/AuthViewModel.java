@@ -7,34 +7,32 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.example.smartreceiptmanager.firestore.FirestoreRepository;
 import com.example.smartreceiptmanager.firestore.SyncManager;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
-/**
- * ViewModel xử lý toàn bộ logic Auth: Email/Password, Google, Facebook.
- * Sau khi đăng nhập thành công:
- *   1. Lưu / cập nhật UserProfile lên Firestore (users/{uid})
- *   2. Trigger sync các expense còn pending lên Firestore
- */
+import java.util.HashMap;
+import java.util.Map;
+
 public class AuthViewModel extends AndroidViewModel {
 
     private static final String TAG = "AuthViewModel";
 
     private final FirebaseAuth auth;
-    private final FirestoreRepository firestoreRepo;
+    private final DatabaseReference databaseRef;
 
     private final MutableLiveData<FirebaseUser> userLiveData;
     private final MutableLiveData<String> errorLiveData;
-    // Loading state để UI có thể hiển thị spinner nếu cần
     private final MutableLiveData<Boolean> loadingLiveData;
 
     public AuthViewModel(Application application) {
         super(application);
         auth = FirebaseAuth.getInstance();
-        firestoreRepo = FirestoreRepository.getInstance();
+        databaseRef = FirebaseDatabase.getInstance().getReference();
+
         userLiveData = new MutableLiveData<>(auth.getCurrentUser());
         errorLiveData = new MutableLiveData<>();
         loadingLiveData = new MutableLiveData<>(false);
@@ -43,10 +41,6 @@ public class AuthViewModel extends AndroidViewModel {
     public LiveData<FirebaseUser> getUserLiveData()   { return userLiveData; }
     public LiveData<String>       getErrorLiveData()  { return errorLiveData; }
     public LiveData<Boolean>      getLoadingLiveData(){ return loadingLiveData; }
-
-    // ================================================================
-    // ĐĂNG NHẬP BẰNG EMAIL & PASSWORD
-    // ================================================================
 
     public void login(String email, String password) {
         loadingLiveData.setValue(true);
@@ -58,94 +52,128 @@ public class AuthViewModel extends AndroidViewModel {
                         userLiveData.setValue(user);
                         onLoginSuccess(user);
                     } else {
-                        String msg = task.getException() != null
-                                ? task.getException().getMessage()
-                                : "Đăng nhập thất bại";
+                        String msg = task.getException() != null ? task.getException().getMessage() : "Đăng nhập thất bại";
                         errorLiveData.setValue(msg);
                     }
                 });
     }
 
-    // ================================================================
-    // ĐĂNG KÝ BẰNG EMAIL & PASSWORD
-    // ================================================================
 
     public void register(String email, String password) {
         loadingLiveData.setValue(true);
         auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
-                    loadingLiveData.setValue(false);
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
-                        userLiveData.setValue(user);
-                        onLoginSuccess(user);
+
+                        onRegisterSuccess(user);
                     } else {
-                        String msg = task.getException() != null
-                                ? task.getException().getMessage()
-                                : "Đăng ký thất bại";
+                        loadingLiveData.setValue(false);
+                        String msg = task.getException() != null ? task.getException().getMessage() : "Đăng ký thất bại";
                         errorLiveData.setValue(msg);
                     }
                 });
     }
 
-    // ================================================================
-    // ĐĂNG NHẬP BẰNG GOOGLE / FACEBOOK (Social Credential)
-    // ================================================================
 
     public void loginWithCredential(AuthCredential credential) {
         loadingLiveData.setValue(true);
         auth.signInWithCredential(credential)
                 .addOnCompleteListener(task -> {
-                    loadingLiveData.setValue(false);
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
-                        userLiveData.setValue(user);
-                        onLoginSuccess(user);
+                        boolean isNewUser = task.getResult().getAdditionalUserInfo().isNewUser();
+                        if (isNewUser) {
+                            onRegisterSuccess(user);
+                        } else {
+                            loadingLiveData.setValue(false);
+                            userLiveData.setValue(user);
+                            onLoginSuccess(user);
+                        }
                     } else {
-                        String msg = task.getException() != null
-                                ? task.getException().getMessage()
-                                : "Xác thực mạng xã hội thất bại";
+                        loadingLiveData.setValue(false);
+                        String msg = task.getException() != null ? task.getException().getMessage() : "Xác thực mạng xã hội thất bại";
                         errorLiveData.setValue(msg);
                     }
                 });
     }
-
-    // ================================================================
-    // ĐĂNG XUẤT
-    // ================================================================
 
     public void logout() {
         auth.signOut();
         userLiveData.setValue(null);
     }
 
-    // ================================================================
-    // SAU KHI ĐĂNG NHẬP THÀNH CÔNG
-    // ================================================================
+    private void onRegisterSuccess(FirebaseUser user) {
+        if (user == null) {
+            loadingLiveData.setValue(false);
+            return;
+        }
+        String uid = user.getUid();
+        String email = user.getEmail() != null ? user.getEmail() : "";
+        String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Người dùng mới";
 
-    /**
-     * Hàm này được gọi ngay sau khi bất kỳ phương thức đăng nhập nào thành công.
-     * 1. Lưu/cập nhật thông tin user lên Firestore (collection: users/{uid})
-     * 2. Trigger sync các expense pending lên Firestore
-     */
+        Map<String, Object> childUpdates = new HashMap<>();
+        long currentTime = System.currentTimeMillis();
+
+        // 1. Tạo Model User Profile
+        UserProfile.Profile profileInner = new UserProfile.Profile(displayName, "");
+        UserProfile userProfileObj = new UserProfile(email, "", "", "", profileInner);
+        userProfileObj.setCreated_at(currentTime);
+
+        // 2. Tạo Map cho Ví mặc định
+        Map<String, Object> defaultWallet = new HashMap<>();
+        defaultWallet.put("created_at", currentTime);
+        defaultWallet.put("currency_code", "VND");
+        defaultWallet.put("total_amount", 0);
+        defaultWallet.put("wallet_name", "Ví tiền mặt");
+        defaultWallet.put("wallet_type", "Tiền mặt");
+
+        // 3. Tạo Map cho Danh mục mặc định
+        Map<String, Object> expenseCategory = new HashMap<>();
+        expenseCategory.put("category_type", "expense");
+        expenseCategory.put("name", "Ăn uống");
+
+        Map<String, Object> incomeCategory = new HashMap<>();
+        incomeCategory.put("category_type", "income");
+        incomeCategory.put("name", "Tiền lương");
+
+        // Đưa vào các đường dẫn bắt đầu bằng "User_Profiles/"
+        childUpdates.put("User_Profiles/users/" + uid, userProfileObj);
+        childUpdates.put("User_Profiles/wallets/" + uid + "/wallet_default_01", defaultWallet);
+        childUpdates.put("User_Profiles/categories/" + uid + "/cate_expense_01", expenseCategory);
+        childUpdates.put("User_Profiles/categories/" + uid + "/cate_income_01", incomeCategory);
+
+        // Đẩy đồng thời lên Firebase
+        databaseRef.updateChildren(childUpdates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Khởi tạo dữ liệu mặc định thành công cho UID: " + uid);
+                    if (getApplication() != null) {
+                        try {
+                            SyncManager.getInstance(getApplication()).syncPendingIfOnline();
+                        } catch (Exception e) {
+                            Log.e(TAG, "SyncManager error: " + e.getMessage());
+                        }
+                    }
+                    loadingLiveData.setValue(false);
+                    userLiveData.setValue(user);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi tạo dữ liệu ban đầu: " + e.getMessage());
+                    loadingLiveData.setValue(false);
+                    errorLiveData.setValue("Lỗi thiết lập dữ liệu ban đầu: " + e.getMessage());
+                });
+    }
+
     private void onLoginSuccess(FirebaseUser user) {
         if (user == null) return;
+        Log.d(TAG, "Người dùng cũ đăng nhập thành công: " + user.getUid());
 
-        // 1. Lưu UserProfile lên Firestore
-        firestoreRepo.saveUserProfile(user, new FirestoreRepository.OnCompleteCallback() {
-            @Override
-            public void onSuccess() {
-                Log.d(TAG, "UserProfile đã lưu lên Firestore: " + user.getUid());
+        if (getApplication() != null) {
+            try {
+                SyncManager.getInstance(getApplication()).syncPendingIfOnline();
+            } catch (Exception e) {
+                Log.e(TAG, "SyncManager error: " + e.getMessage());
             }
-
-            @Override
-            public void onFailure(String error) {
-                // Không block luồng chính, chỉ log lỗi
-                Log.e(TAG, "Lưu UserProfile thất bại: " + error);
-            }
-        });
-
-        // 2. Sync các expense offline lên Firestore
-        SyncManager.getInstance(getApplication()).syncPendingIfOnline();
+        }
     }
 }

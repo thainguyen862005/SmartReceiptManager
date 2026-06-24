@@ -14,13 +14,6 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Quản lý việc đồng bộ dữ liệu offline -> Firestore.
- *
- * Cách dùng:
- *   - Gọi SyncManager.getInstance(context).syncPendingIfOnline()
- *     bất cứ khi nào muốn thử sync (vào app, sau khi lưu expense mới, v.v.)
- */
 public class SyncManager {
 
     private static final String TAG = "SyncManager";
@@ -42,19 +35,7 @@ public class SyncManager {
         this.firestoreRepo = FirestoreRepository.getInstance();
     }
 
-    // ================================================================
-    // SYNC TRIGGER
-    // ================================================================
 
-    /**
-     * Kiểm tra mạng + user đã đăng nhập, sau đó sync tất cả expense
-     * có cờ isSynced = false lên Firestore.
-     *
-     * Gọi hàm này sau khi:
-     *   1. User đăng nhập thành công
-     *   2. User lưu một expense mới
-     *   3. App vào foreground (onResume của MainActivity)
-     */
     public void syncPendingIfOnline() {
         if (!isNetworkAvailable()) {
             Log.d(TAG, "Không có mạng – bỏ qua sync, sẽ sync sau");
@@ -71,7 +52,7 @@ public class SyncManager {
         ExpenseStore expenseStore = new ExpenseStore(appContext);
         List<Expense> allExpenses = expenseStore.getAllExpenses();
 
-        // Lọc những expense chưa được sync
+
         List<Expense> pendingExpenses = new ArrayList<>();
         for (Expense e : allExpenses) {
             if (!e.isSynced()) {
@@ -90,17 +71,12 @@ public class SyncManager {
                 (successCount, failCount) -> {
                     Log.d(TAG, "Sync xong: " + successCount + " thành công, " + failCount + " thất bại");
 
-                    // Cập nhật cờ isSynced = true trong local storage cho những cái thành công
                     if (successCount > 0) {
                         markSyncedExpenses(expenseStore, pendingExpenses, uid);
                     }
                 });
     }
 
-    /**
-     * Sync một expense cụ thể ngay sau khi lưu.
-     * Nếu không có mạng thì bỏ qua (sẽ được sync bởi syncPendingIfOnline lần sau).
-     */
     public void syncSingleExpense(Expense expense) {
         if (!isNetworkAvailable()) {
             Log.d(TAG, "Không có mạng – expense " + expense.getId() + " sẽ được sync sau");
@@ -131,9 +107,6 @@ public class SyncManager {
         });
     }
 
-    /**
-     * Xóa expense khỏi Firestore khi user xóa local.
-     */
     public void deleteExpenseFromFirestore(String expenseId) {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) return;
@@ -151,18 +124,6 @@ public class SyncManager {
         });
     }
 
-    // ================================================================
-    // HELPER
-    // ================================================================
-
-    /**
-     * Sau khi batch sync thành công, cập nhật isSynced = true
-     * cho tất cả expense đã được sync (dựa vào uid để đối chiếu).
-     *
-     * Lưu ý: do syncPendingExpenses không phân biệt được expense nào thành công,
-     * hàm này mark toàn bộ pending list là synced khi đủ số lượng thành công.
-     * Với dự án này là chấp nhận được vì dữ liệu nhỏ.
-     */
     private void markSyncedExpenses(ExpenseStore store, List<Expense> synced, String uid) {
         for (Expense expense : synced) {
             expense.setSynced(true);
@@ -171,9 +132,6 @@ public class SyncManager {
         Log.d(TAG, "Đã đánh dấu " + synced.size() + " expense là synced");
     }
 
-    /**
-     * Kiểm tra kết nối mạng (hỗ trợ Android 6+).
-     */
     public boolean isNetworkAvailable() {
         ConnectivityManager cm =
                 (ConnectivityManager) appContext.getSystemService(Context.CONNECTIVITY_SERVICE);
