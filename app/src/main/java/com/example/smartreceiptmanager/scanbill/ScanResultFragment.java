@@ -2,6 +2,7 @@ package com.example.smartreceiptmanager.scanbill;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,10 +14,14 @@ import androidx.fragment.app.Fragment;
 
 import com.example.smartreceiptmanager.R;
 import com.example.smartreceiptmanager.databinding.FragmentScanResultBinding;
+import com.google.android.material.chip.Chip;
 
+import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class ScanResultFragment extends Fragment {
 
@@ -24,28 +29,27 @@ public class ScanResultFragment extends Fragment {
     private static final String ARG_AMOUNT  = "amount";
     private static final String ARG_DATE    = "date";
     private static final String ARG_RAW     = "raw_text";
-
+    private static final String ARG_CATEGORY = "category";
     private FragmentScanResultBinding binding;
 
-    // Bitmap giữ tạm trong bộ nhớ — sau này thay bằng URI/database
+    // Đường link URL lấy chính xác từ Console Realtime Database
+    private final String dbUrl = "https://appmobile-123-default-rtdb.firebaseio.com/";
+
     public static Bitmap previewBitmap = null;
 
-    // -------------------------------------------------------
     public static ScanResultFragment newInstance(
-            String shopName, long amount, long dateMillis, String rawText) {
-
+            String shopName, long amount, long dateMillis, String rawText, String category) {
         Bundle args = new Bundle();
         args.putString(ARG_SHOP,   shopName);
         args.putLong  (ARG_AMOUNT, amount);
         args.putLong  (ARG_DATE,   dateMillis);
         args.putString(ARG_RAW,    rawText);
-
+        args.putString(ARG_CATEGORY, category);
         ScanResultFragment f = new ScanResultFragment();
         f.setArguments(args);
         return f;
     }
 
-    // -------------------------------------------------------
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -66,58 +70,244 @@ public class ScanResultFragment extends Fragment {
         long   amount    = args.getLong  (ARG_AMOUNT,  0);
         long   dateMs    = args.getLong  (ARG_DATE,    System.currentTimeMillis());
         String rawText   = args.getString(ARG_RAW,    "");
+        String category  = args.getString(ARG_CATEGORY, "Khác");
 
-        // Hiển thị ảnh nếu có
         if (previewBitmap != null) {
             binding.imgReceipt.setImageBitmap(previewBitmap);
         }
 
-        // Điền dữ liệu vào form
         binding.etShopName.setText(shopName);
         binding.etAmount.setText(String.valueOf(amount));
         binding.etDate.setText(
                 new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
                         .format(new Date(dateMs)));
 
-        // Chọn chip mặc định
-        binding.chipEat.setChecked(true);
+        binding.tvConfidence.setText("AI gợi ý danh mục: " + category);
 
-        // Xem ảnh lớn
+        // KIỂM TRA KẾT NỐI MẠNG ĐƠN LẺ
+        com.google.firebase.database.FirebaseDatabase.getInstance(dbUrl)
+                .getReference(".info/connected")
+                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                        Boolean connected = snapshot.getValue(Boolean.class);
+                        if (isAdded()) {
+                            if (connected != null && connected) {
+                                Toast.makeText(requireContext(), "✅ Kết nối Realtime DB thành công!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(requireContext(), "⚠️ Firebase đang ngoại tuyến hoặc sai Rules!", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
+                    @Override
+                    public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {}
+                });
+
+        // Hiện bộ chip tĩnh cục bộ ngay lập tức để giao diện mượt mà
+        renderLocalPredictionChips(category);
+
+        //TẢI DANH MỤC TRỰC TUYẾN TỪ SERVER
+        loadCategoriesFromRealtime(category);
+
         binding.btnViewLarge.setOnClickListener(v -> {
             if (previewBitmap == null) return;
             showFullImageDialog();
         });
 
-        // Quét lại
         binding.btnRescan.setOnClickListener(v -> {
             previewBitmap = null;
-            requireActivity()
-                    .getSupportFragmentManager()
-                    .popBackStack();
+            requireActivity().getSupportFragmentManager().popBackStack();
         });
 
-        // Lưu hóa đơn
+        //LUỒNG TỰ ĐỘNG MÃ HÓA ẢNH THÀNH URL BASE64 VÀ GHI VÀO DATABASE
         binding.btnSave.setOnClickListener(v -> {
-            String finalShop   = binding.etShopName.getText() != null
-                    ? binding.etShopName.getText().toString() : shopName;
-            String finalAmount = binding.etAmount.getText() != null
-                    ? binding.etAmount.getText().toString() : "0";
-            String finalDate   = binding.etDate.getText() != null
-                    ? binding.etDate.getText().toString() : "";
+            binding.btnSave.setText("Đang mã hóa & lưu...");
+            binding.btnSave.setEnabled(false);
 
-            int selectedChipId = binding.chipGroup.getCheckedChipId();
-            String category = "Khác";
-            if (selectedChipId == R.id.chipEat)    category = "Ăn uống";
-            else if (selectedChipId == R.id.chipCoffee) category = "Cà phê";
+            String finalShop   = binding.etShopName.getText() != null ? binding.etShopName.getText().toString() : shopName;
+            String finalAmount = binding.etAmount.getText() != null ? binding.etAmount.getText().toString() : "0";
+            String finalDate   = binding.etDate.getText() != null ? binding.etDate.getText().toString() : "";
 
-            // TODO: truyền vào database sau
-            // saveToDatabase(finalShop, finalAmount, finalDate, category, rawText);
+            int categoryId = 8; // Mặc định là Khác
+            int checkedId = binding.chipGroup.getCheckedChipId();
+            if (checkedId != View.NO_ID) {
+                Chip selectedChip = binding.chipGroup.findViewById(checkedId);
+                if (selectedChip != null) {
+                    if (selectedChip.getTag() != null) {
+                        categoryId = (int) selectedChip.getTag();
+                    } else {
+                        categoryId = getCategoryId(selectedChip.getText().toString());
+                    }
+                }
+            }
 
-            Toast.makeText(requireContext(),
-                    "Đã lưu: " + finalShop + " - " + finalAmount + "đ",
-                    Toast.LENGTH_SHORT).show();
+            // Fix lỗi định dạng số tiền nếu chứa ký tự đặc biệt
+            String cleanAmountStr = finalAmount.replaceAll("[^0-9]", "");
+            long amountLong = 0;
+            try {
+                if (!cleanAmountStr.isEmpty()) {
+                    amountLong = Long.parseLong(cleanAmountStr);
+                }
+            } catch (NumberFormatException ignored) {}
+
+            String imageConvertedUrl = "";
+
+            if (previewBitmap != null) {
+                try {
+                    //  Thu nhỏ kích thước ảnh một chút để chuỗi URL không bị quá nặng cho Database
+                    Bitmap scaledBitmap = Bitmap.createScaledBitmap(previewBitmap, 600, 800, true);
+
+                    //  Nén ảnh Bitmap thành mảng Byte dạng JPEG chất lượng 70%
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
+                    byte[] imageData = baos.toByteArray();
+
+                    //  Chuyển mảng Byte thành chuỗi ký tự dài Base64 (Đóng vai trò làm URL nội dung ảnh)
+                    imageConvertedUrl = Base64.encodeToString(imageData, Base64.DEFAULT);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            // Ghi trực tiếp chuỗi URL ảnh đã chuyển đổi và text về Realtime Database (Bỏ hoàn toàn qua Storage)
+            luuHoaDonVaoRealtime(finalShop, amountLong, finalDate, categoryId, rawText, imageConvertedUrl);
         });
     }
+
+    private void resetSaveButtonState() {
+        if (binding != null) {
+            binding.btnSave.setText("Lưu hóa đơn");
+            binding.btnSave.setEnabled(true);
+        }
+    }
+
+    // HÀM GHI DỮ LIỆU CUỐI CÙNG LÊN REALTIME DATABASE
+    private void luuHoaDonVaoRealtime(String shop, long amount, String date, int catId, String raw, String imageUrl) {
+        Map<String, Object> expense = new HashMap<>();
+        expense.put("shop_name",    shop);
+        expense.put("amount",       amount);
+        expense.put("expense_date", date);
+        expense.put("category_id",  catId);
+        expense.put("note",         raw);
+        expense.put("image_url",    imageUrl); // Lưu chuỗi mã hóa ảnh lên đây
+        expense.put("created_at",   System.currentTimeMillis());
+
+        com.google.firebase.database.DatabaseReference realtimeRef =
+                com.google.firebase.database.FirebaseDatabase.getInstance(dbUrl).getReference("Expense_Transactions");
+
+        String key = realtimeRef.push().getKey();
+        if (key != null) {
+            realtimeRef.child(key).setValue(expense)
+                    .addOnSuccessListener(aVoid -> {
+                        if (isAdded()) {
+                            resetSaveButtonState();
+                            Toast.makeText(requireContext(), "🎉 Đã lưu hóa đơn thành công!", Toast.LENGTH_SHORT).show();
+                            previewBitmap = null; // Giải phóng RAM cho máy
+                            requireActivity().getSupportFragmentManager().popBackStack();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (isAdded()) {
+                            resetSaveButtonState();
+                            Toast.makeText(requireContext(), "❌ Lỗi ghi Database: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+        }
+    }
+
+    private void renderLocalPredictionChips(String aiSuggestedCategory) {
+        if (binding == null) return;
+
+        binding.chipGroup.removeAllViews();
+        binding.progressCategories.setVisibility(View.VISIBLE);
+        binding.chipGroup.setVisibility(View.VISIBLE);
+
+        String[] defaultCategories = {"Ăn uống", "Cà phê", "Mua sắm", "Di chuyển", "Giải trí", "Sức khỏe", "Giáo dục", "Khác"};
+
+        for (String catName : defaultCategories) {
+            Chip chip = new Chip(requireContext());
+            chip.setText(catName);
+            chip.setCheckable(true);
+            chip.setCheckedIconVisible(true);
+            chip.setTag(getCategoryId(catName));
+
+            if (catName.equalsIgnoreCase(aiSuggestedCategory)) {
+                chip.setChecked(true);
+            }
+            binding.chipGroup.addView(chip);
+        }
+
+        if (binding.chipGroup.getCheckedChipId() == View.NO_ID) {
+            for (int i = 0; i < binding.chipGroup.getChildCount(); i++) {
+                View child = binding.chipGroup.getChildAt(i);
+                if (child instanceof Chip && "Khác".equals(((Chip) child).getText().toString())) {
+                    ((Chip) child).setChecked(true);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void loadCategoriesFromRealtime(String aiSuggestedCategory) {
+        com.google.firebase.database.FirebaseDatabase.getInstance(dbUrl).getReference("Categories")
+                .orderByChild("category_type")
+                .equalTo("expense")
+                .get()
+                .addOnSuccessListener(dataSnapshot -> {
+                    if (binding == null) return;
+                    binding.progressCategories.setVisibility(View.GONE);
+
+                    if (dataSnapshot.exists() && dataSnapshot.hasChildren()) {
+                        binding.chipGroup.removeAllViews();
+
+                        for (com.google.firebase.database.DataSnapshot doc : dataSnapshot.getChildren()) {
+                            String name = doc.child("name").getValue(String.class);
+                            Long categoryIdLong = doc.child("category_id").getValue(Long.class);
+                            int categoryId = categoryIdLong != null ? categoryIdLong.intValue() : 0;
+
+                            Chip chip = new Chip(requireContext());
+                            chip.setText(name);
+                            chip.setTag(categoryId);
+                            chip.setCheckable(true);
+                            chip.setCheckedIconVisible(true);
+
+                            if (name != null && name.equalsIgnoreCase(aiSuggestedCategory)) {
+                                chip.setChecked(true);
+                            }
+                            binding.chipGroup.addView(chip);
+                        }
+
+                        if (binding.chipGroup.getCheckedChipId() == View.NO_ID) {
+                            for (int i = 0; i < binding.chipGroup.getChildCount(); i++) {
+                                View child = binding.chipGroup.getChildAt(i);
+                                if (child instanceof Chip && "Khác".equals(((Chip) child).getText().toString())) {
+                                    ((Chip) child).setChecked(true);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (binding != null) {
+                        binding.progressCategories.setVisibility(View.GONE);
+                    }
+                });
+    }
+
+    private int getCategoryId(String categoryName) {
+        switch (categoryName) {
+            case "Ăn uống":   return 1;
+            case "Cà phê":    return 2;
+            case "Mua sắm":   return 3;
+            case "Di chuyển": return 4;
+            case "Giải trí":  return 5;
+            case "Sức khỏe":  return 6;
+            case "Giáo dục":  return 7;
+            default:          return 8;
+        }
+    }
+
     private void showFullImageDialog() {
         if (previewBitmap == null) return;
 
@@ -191,6 +381,7 @@ public class ScanResultFragment extends Fragment {
         dialog.setContentView(frameLayout);
         dialog.show();
     }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
