@@ -1,5 +1,5 @@
 package com.example.smartreceiptmanager.scanbill;
-
+import com.example.smartreceiptmanager.BuildConfig;
 import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
@@ -44,9 +44,20 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 public class ScanBillFragment extends Fragment {
 
     private FragmentScanBillBinding binding;
@@ -55,6 +66,13 @@ public class ScanBillFragment extends Fragment {
     private ImageCapture imageCapture;
     private boolean isFlashOn = false;
     private ObjectAnimator scanLineAnimator;
+    private boolean isAiProcessing = false;
+    private long lastApiCallTime = 0;
+    private static final long API_COOLDOWN_MS = 10000;
+    private static final String GROQ_API_KEY = BuildConfig.GROQ_API_KEY;
+    private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+    private static final String GROQ_MODEL = "llama-3.3-70b-versatile";
+
 
     private final ActivityResultLauncher<String> permissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
@@ -83,6 +101,7 @@ public class ScanBillFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        isAiProcessing = false;
         cameraExecutor = Executors.newSingleThreadExecutor();
         setupClickListeners();
         checkCameraPermission();
@@ -186,16 +205,17 @@ public class ScanBillFragment extends Fragment {
 
         BarcodeScanner barcodeScanner = BarcodeScanning.getClient();
         barcodeScanner.process(image)
-                .addOnSuccessListener(barcodes -> {
-                    if (!barcodes.isEmpty()) {
-                        // Tìm thấy QR
-                        handleBarcodeResult(barcodes.get(0), bitmap);
-                    } else {
-                        // Không có QR → thử OCR văn bản
+                .addOnCompleteListener(task -> {
+                    boolean foundBarcode = false;
+                    if (task.isSuccessful() && task.getResult() != null
+                            && !task.getResult().isEmpty()) {
+                        handleBarcodeResult(task.getResult().get(0), bitmap);
+                        foundBarcode = true;
+                    }
+                    if (!foundBarcode) {
                         processTextOCR(image, bitmap);
                     }
-                })
-                .addOnFailureListener(e -> processTextOCR(image, bitmap));
+                });
 
 
     }
@@ -305,14 +325,146 @@ public class ScanBillFragment extends Fragment {
                         binding.tvStatus.setText("Không tìm thấy nội dung");
                         return;
                     }
-                    String shopName = parseShopName(rawText);
-                    long amount     = parseAmount(rawText);
-                    binding.tvStatus.setText("Đã nhận dạng xong");
-                    navigateToResult(shopName, amount, rawText);
+                    binding.tvStatus.setText("AI đang phân tích hóa đơn...");
+                    callGroqAPItoParseReceipt(rawText);
                 })
                 .addOnFailureListener(e ->
                         binding.tvStatus.setText("OCR thất bại: " + e.getMessage()));
     }
+
+    private void callGroqAPItoParseReceipt(String rawText) {
+        long now = System.currentTimeMillis();
+        if (now - lastApiCallTime < API_COOLDOWN_MS) {
+            binding.tvStatus.setText("Vui lòng đợi vài giây...");
+            return;
+        }
+        if (isAiProcessing) return;
+        isAiProcessing = true;
+        lastApiCallTime = now;
+
+        String prompt = "Bạn là trợ lý AI chuyên đọc hóa đơn tiếng Việt. " +
+                "Đọc văn bản OCR sau và trích xuất thông tin. " +
+                "Chỉ trả về JSON hợp lệ, không giải thích, không markdown:\n" +
+                "{\n" +
+                "  \"shop_name\": \"tên cửa hàng\",\n" +
+                "  \"amount\": số_tiền_tổng_cộng,\n" +
+                "  \"date\": \"yyyy-MM-dd\"\n" +
+                "}\n\n" +
+                "Văn bản OCR:\n" + rawText;
+
+        JSONObject jsonBody = new JSONObject();
+        try {
+            JSONObject message = new JSONObject();
+            message.put("role", "user");
+            message.put("content", prompt);
+
+            JSONArray messages = new JSONArray();
+            messages.put(message);
+
+            jsonBody.put("model", GROQ_MODEL);
+            jsonBody.put("max_tokens", 256);
+            jsonBody.put("messages", messages);
+        } catch (Exception e) {
+            e.printStackTrace();
+            isAiProcessing = false;
+            return;
+        }
+
+        OkHttpClient client = new OkHttpClient();
+        MediaType JSON_TYPE = MediaType.get("application/json; charset=utf-8");
+        RequestBody body = RequestBody.create(jsonBody.toString(), JSON_TYPE);
+
+        // [ĐÃ SỬA] Header dùng Authorization: Bearer thay vì ?key= trong URL như Gemini
+        Request request = new Request.Builder()
+                .url(GROQ_URL)
+                .post(body)
+                .addHeader("Authorization", "Bearer " + GROQ_API_KEY)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                isAiProcessing = false;
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() ->
+                            binding.tvStatus.setText("Lỗi kết nối: " + e.getMessage()));
+                }
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                isAiProcessing = false;
+                String responseBody = response.body() != null ? response.body().string() : "";
+
+                if (!response.isSuccessful()) {
+                    android.util.Log.e("GROQ_API", "Lỗi " + response.code() + ": " + responseBody);
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() -> {
+                            if (response.code() == 429) {
+                                binding.tvStatus.setText("AI quá tải, đợi 1 phút rồi thử lại!");
+                            } else {
+                                binding.tvStatus.setText("Lỗi AI (Mã: " + response.code() + ")");
+                            }
+                        });
+                    }
+                    return;
+                }
+
+                try {
+                    // [ĐÃ SỬA] Parse response theo cấu trúc Groq (khác Gemini)
+                    // Gemini cũ: candidates[0].content.parts[0].text
+                    // Groq mới:  choices[0].message.content
+                    JSONObject json = new JSONObject(responseBody);
+                    String aiText = json.getJSONArray("choices")
+                            .getJSONObject(0)
+                            .getJSONObject("message")
+                            .getString("content").trim();
+
+                    // Làm sạch nếu có markdown
+                    if (aiText.startsWith("```json")) aiText = aiText.substring(7);
+                    if (aiText.endsWith("```")) aiText = aiText.substring(0, aiText.length() - 3);
+                    aiText = aiText.trim();
+
+                    JSONObject receiptJson = new JSONObject(aiText);
+                    String shopName = receiptJson.optString("shop_name", "Không rõ");
+                    long amount = receiptJson.optLong("amount", 0);
+                    String dateStr = receiptJson.optString("date", "");
+
+                    long dateMillis = System.currentTimeMillis();
+                    if (!dateStr.isEmpty()) {
+                        try {
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                            Date d = sdf.parse(dateStr);
+                            if (d != null) dateMillis = d.getTime();
+                        } catch (Exception ignored) {}
+                    }
+
+                    long finalDateMillis = dateMillis;
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() -> {
+                            binding.tvStatus.setText("Phân tích xong!");
+                            ScanResultFragment resultFragment = ScanResultFragment.newInstance(
+                                    shopName, amount, finalDateMillis, rawText);
+                            requireActivity().getSupportFragmentManager().beginTransaction()
+                                    .replace(R.id.fragment_container, resultFragment)
+                                    .addToBackStack(null)
+                                    .commit();
+                        });
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() ->
+                                binding.tvStatus.setText("Lỗi đọc kết quả AI"));
+                    }
+                }
+            }
+        });
+    }
+
+
     private void navigateToResult(String shopName, long amount, String rawText) {
         ScanResultFragment fragment = ScanResultFragment.newInstance(
                 shopName, amount, System.currentTimeMillis(), rawText);

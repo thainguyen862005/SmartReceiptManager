@@ -9,6 +9,7 @@ android {
 
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 
     defaultConfig {
@@ -18,6 +19,9 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        def localProps = new Properties()
+        localProps.load(new FileInputStream(rootProject.file("local.properties")))
+        buildConfigField "String", "GROQ_API_KEY", "\"${localProps['GROQ_API_KEY']}\""
     }
 
     buildTypes {
@@ -42,6 +46,11 @@ dependencies {
 
     implementation 'com.google.mlkit:barcode-scanning:17.2.0'
     implementation 'com.google.mlkit:text-recognition:16.0.0'
+
+    dependencies {
+        // Thư viện hỗ trợ gọi API mạng
+        implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    }
     // Guava (Required for ListenableFuture used by CameraX)
     implementation 'com.google.guava:guava:33.3.1-android'
 
