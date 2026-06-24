@@ -67,7 +67,7 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_recent_history"
-                app:tint="#333333" />
+                app:tint="@color/text_main" />
 
             <TextView
                 android:id="@+id/txtHistory"
@@ -75,7 +75,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="Lịch sử"
-                android:textColor="#333333"
+                android:textColor="@color/text_main"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
@@ -111,7 +111,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="Thêm"
-                android:textColor="#333333"
+                android:textColor="@color/text_main"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
@@ -137,7 +137,7 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_crop"
-                app:tint="#333333" />
+                app:tint="@color/text_main" />
 
             <TextView
                 android:id="@+id/txtQRScan"
@@ -145,7 +145,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="Quét"
-                android:textColor="#333333"
+                android:textColor="@color/text_main"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
@@ -171,7 +171,7 @@
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@android:drawable/ic_menu_sort_by_size"
-                app:tint="#333333" />
+                app:tint="@color/text_main" />
 
             <TextView
                 android:id="@+id/txtStatistics"
@@ -179,7 +179,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="Thống kê"
-                android:textColor="#333333"
+                android:textColor="@color/text_main"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>

@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA"
+    android:background="@color/bg_background"
     android:fillViewport="true">
 
     <LinearLayout
@@ -22,7 +22,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Lịch sử chi tiêu"
-                android:textColor="#1D1F20"
+                android:textColor="@color/text_main"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -48,7 +48,7 @@
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:text="⌕"
-                        android:textColor="#435047"
+                        android:textColor="@color/text_secondary"
                         android:textSize="24sp" />
 
                     <TextView
@@ -58,7 +58,7 @@
                         android:layout_weight="1"
                         android:gravity="center_vertical"
                         android:text="Tìm kiếm giao dịch..."
-                        android:textColor="#7A8190"
+                        android:textColor="@color/text_secondary"
                         android:textSize="16sp" />
                 </LinearLayout>
 
@@ -68,7 +68,7 @@
                     android:background="@drawable/bg_filter_figma"
                     android:gravity="center"
                     android:text="≡  Tháng 10"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="16sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -81,7 +81,7 @@
                 android:background="@drawable/bg_card_figma"
                 android:gravity="center"
                 android:text="Chưa có dữ liệu chi tiêu."
-                android:textColor="#435047"
+                android:textColor="@color/text_secondary"
                 android:textSize="16sp"
                 android:visibility="gone" />
 

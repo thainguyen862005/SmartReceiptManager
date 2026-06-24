@@ -58,7 +58,7 @@
                 app:fabSize="mini"
                 android:src="@android:drawable/ic_menu_edit"
                 app:backgroundTint="?attr/colorSecondary"
-                app:tint="#FFFFFF"
+                app:tint="?attr/colorOnSecondary"
                 app:elevation="4dp" />
         </RelativeLayout>
 
@@ -165,8 +165,8 @@
             android:layout_height="54dp"
             android:layout_marginTop="24dp"
             android:text="Đăng xuất"
-            android:backgroundTint="#FFEAEA"
-            android:textColor="#C62828"
+            android:backgroundTint="@color/bg_logout_btn"
+            android:textColor="@color/text_logout_btn"
             app:cornerRadius="27dp"/>
     </LinearLayout>
 </LinearLayout>
