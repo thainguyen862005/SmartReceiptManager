@@ -21,7 +21,7 @@
         android:background="@drawable/bg_avatar_mint"
         android:gravity="center"
         android:text="🍴"
-        android:textColor="#006F49"
+        android:textColor="@color/primary_green"
         android:textSize="22sp" />
 
     <LinearLayout
@@ -38,7 +38,7 @@
             android:ellipsize="end"
             android:maxLines="2"
             android:text="Ăn tối ngoài"
-            android:textColor="#1D1F20"
+            android:textColor="@color/text_main"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -50,7 +50,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="Hôm nay, 19:30"
-            android:textColor="#435047"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -61,7 +61,7 @@
         android:layout_height="wrap_content"
         android:gravity="end"
         android:text="-450,000 đ"
-        android:textColor="#1D1F20"
+        android:textColor="@color/text_main"
         android:textSize="20sp"
         android:textStyle="bold" />
 

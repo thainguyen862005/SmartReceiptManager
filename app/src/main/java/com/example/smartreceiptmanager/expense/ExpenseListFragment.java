@@ -14,6 +14,12 @@ import androidx.fragment.app.Fragment;
 import com.example.smartreceiptmanager.R;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
+import android.content.Intent;
+import android.widget.ImageView;
+import com.bumptech.glide.Glide;
+import com.example.smartreceiptmanager.ProfileActivity;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +43,27 @@ public class ExpenseListFragment extends Fragment {
         layoutAllExpenses = view.findViewById(R.id.layoutAllExpenses);
 
         // Đã xóa dòng setOnClickListener của nút btnAddExpenseHistory vì nút đã bị xóa bên XML
+
+        View cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
+        ImageView imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
+        if (cardHeaderAvatar != null) {
+            cardHeaderAvatar.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), ProfileActivity.class);
+                startActivity(intent);
+            });
+        }
+        if (imgHeaderAvatar != null) {
+            FirebaseAuth.getInstance().addAuthStateListener(firebaseAuth -> {
+                FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+                if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
+                    Glide.with(this)
+                            .load(firebaseUser.getPhotoUrl())
+                            .placeholder(android.R.drawable.sym_def_app_icon)
+                            .circleCrop()
+                            .into(imgHeaderAvatar);
+                }
+            });
+        }
 
         renderExpenses();
     }

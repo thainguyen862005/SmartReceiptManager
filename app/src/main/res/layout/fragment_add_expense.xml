@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="@color/bg_background">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -27,7 +27,7 @@
                     android:layout_centerVertical="true"
                     android:gravity="center"
                     android:text="×"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="32sp" />
 
                 <TextView
@@ -37,7 +37,7 @@
                     android:layout_centerInParent="true"
                     android:gravity="center"
                     android:text="Thêm chi tiêu"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="22sp"
                     android:textStyle="bold" />
             </RelativeLayout>
@@ -48,7 +48,7 @@
                 android:layout_marginTop="28dp"
                 android:gravity="center"
                 android:text="SỐ TIỀN"
-                android:textColor="#435047"
+                android:textColor="@color/text_secondary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -65,7 +65,7 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="đ"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="28sp"
                     android:textStyle="bold" />
 
@@ -74,7 +74,7 @@
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:backgroundTint="#006F49"
+                    android:backgroundTint="@color/primary_green"
                     android:gravity="center"
                     android:hint="0"
                     android:includeFontPadding="false"
@@ -82,8 +82,8 @@
                     android:maxLines="1"
                     android:paddingHorizontal="0dp"
                     android:singleLine="true"
-                    android:textColor="#006F49"
-                    android:textColorHint="#D9D9D9"
+                    android:textColor="@color/primary_green"
+                    android:textColorHint="@color/border_light"
                     android:textSize="36sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -99,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="34dp"
                 android:text="Danh mục"
-                android:textColor="#1D1F20"
+                android:textColor="@color/text_main"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -137,7 +137,7 @@
                         android:layout_marginTop="12dp"
                         android:gravity="center"
                         android:text="Ăn\nuống"
-                        android:textColor="#435047"
+                        android:textColor="@color/text_secondary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -168,7 +168,7 @@
                         android:layout_marginTop="12dp"
                         android:gravity="center"
                         android:text="Di\nchuyển"
-                        android:textColor="#435047"
+                        android:textColor="@color/text_secondary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -199,7 +199,7 @@
                         android:layout_marginTop="12dp"
                         android:gravity="center"
                         android:text="Mua\nsắm"
-                        android:textColor="#435047"
+                        android:textColor="@color/text_secondary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -229,7 +229,7 @@
                         android:layout_marginTop="12dp"
                         android:gravity="center"
                         android:text="Hóa\nđơn"
-                        android:textColor="#435047"
+                        android:textColor="@color/text_secondary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -250,7 +250,7 @@
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="▦"
-                    android:textColor="#435047"
+                    android:textColor="@color/text_secondary"
                     android:textSize="22sp" />
 
                 <TextView
@@ -261,7 +261,7 @@
                     android:layout_weight="1"
                     android:gravity="center_vertical"
                     android:text="Hôm nay, 24 Th10 2023"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="13sp" />
             </LinearLayout>
 
@@ -277,7 +277,7 @@
                     android:layout_width="44dp"
                     android:layout_height="match_parent"
                     android:text="☰"
-                    android:textColor="#435047"
+                    android:textColor="@color/text_secondary"
                     android:textSize="22sp" />
 
                 <EditText
@@ -289,8 +289,8 @@
                     android:background="@android:color/transparent"
                     android:gravity="top"
                     android:hint="Thêm ghi chú..."
-                    android:textColor="#1D1F20"
-                    android:textColorHint="#435047"
+                    android:textColor="@color/text_main"
+                    android:textColorHint="@color/text_secondary"
                     android:textSize="13sp" />
             </LinearLayout>
 
@@ -306,7 +306,7 @@
         android:layout_width="match_parent"
         android:layout_height="94dp"
         android:layout_gravity="bottom"
-        android:background="#F8F9FA"
+        android:background="@color/bg_background"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="30dp"
@@ -320,7 +320,7 @@
             android:background="@drawable/bg_danger_button"
             android:gravity="center"
             android:text="Xóa"
-            android:textColor="#B9181E"
+            android:textColor="@color/danger_red"
             android:textSize="13sp"
             android:textStyle="bold"
             android:visibility="gone" />

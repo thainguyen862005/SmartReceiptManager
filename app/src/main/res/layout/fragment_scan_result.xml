@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="@color/bg_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -68,7 +68,7 @@
                 android:drawablePadding="4dp"
                 android:gravity="center_vertical"
                 android:text="Quét thành công"
-                android:textColor="#1B5E20"
+                android:textColor="@color/primary_green"
                 android:textSize="14sp" />
 
             <TextView
@@ -76,7 +76,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Độ tin cậy: 95%"
-                android:textColor="#888888"
+                android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
 
         </LinearLayout>
@@ -87,7 +87,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/bg_surface">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -100,7 +101,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="Thông tin trích xuất"
-                    android:textColor="#111111"
+                    android:textColor="@color/text_main"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -109,7 +110,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:text="Vui lòng kiểm tra và chỉnh sửa nếu cần thiết."
-                    android:textColor="#888888"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <!-- Tên cửa hàng -->
@@ -118,7 +119,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="Tên cửa hàng"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -149,7 +150,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="Ngày"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -180,7 +181,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="Tổng tiền (VND)"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -202,7 +203,7 @@
                         android:inputType="numberDecimal"
                         android:paddingStart="8dp"
                         android:hint="Tổng tiền"
-                        android:textColor="#1B5E20"
+                        android:textColor="@color/primary_green"
                         android:textStyle="bold" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -214,7 +215,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="Phân loại (Gợi ý)"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <!-- [MỚI] Loading indicator hiện khi đang tải danh mục từ Firestore -->
@@ -279,8 +280,8 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:text="Quét lại"
-                android:textColor="#333333"
-                android:backgroundTint="#EEEEEE"
+                android:textColor="@color/text_main"
+                android:backgroundTint="@color/border_light"
                 app:cornerRadius="12dp"
                 style="@style/Widget.MaterialComponents.Button" />
 
@@ -291,8 +292,8 @@
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 android:text="Lưu hóa đơn"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#1B5E20"
+                android:textColor="@android:color/white"
+                android:backgroundTint="@color/primary_green"
                 app:cornerRadius="12dp"
                 style="@style/Widget.MaterialComponents.Button" />
 
