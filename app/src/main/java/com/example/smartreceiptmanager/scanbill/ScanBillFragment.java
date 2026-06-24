@@ -349,6 +349,7 @@ public class ScanBillFragment extends Fragment {
                 "  \"shop_name\": \"tên cửa hàng\",\n" +
                 "  \"amount\": số_tiền_tổng_cộng,\n" +
                 "  \"date\": \"yyyy-MM-dd\"\n" +
+                "  \"category\": \"một trong các giá trị: Ăn uống, Cà phê, Mua sắm, Di chuyển, Giải trí, Sức khỏe, Giáo dục, Khác\"\n" +
                 "}\n\n" +
                 "Văn bản OCR:\n" + rawText;
 
@@ -374,7 +375,7 @@ public class ScanBillFragment extends Fragment {
         MediaType JSON_TYPE = MediaType.get("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(jsonBody.toString(), JSON_TYPE);
 
-        // [ĐÃ SỬA] Header dùng Authorization: Bearer thay vì ?key= trong URL như Gemini
+        //Header dùng Authorization: Bearer thay vì ?key= trong URL như Gemini
         Request request = new Request.Builder()
                 .url(GROQ_URL)
                 .post(body)
@@ -412,9 +413,8 @@ public class ScanBillFragment extends Fragment {
                 }
 
                 try {
-                    // [ĐÃ SỬA] Parse response theo cấu trúc Groq (khác Gemini)
-                    // Gemini cũ: candidates[0].content.parts[0].text
-                    // Groq mới:  choices[0].message.content
+                    // Parse response theo cấu trúc Groq (khác Gemini)
+                    // Groq:  choices[0].message.content
                     JSONObject json = new JSONObject(responseBody);
                     String aiText = json.getJSONArray("choices")
                             .getJSONObject(0)
@@ -430,7 +430,7 @@ public class ScanBillFragment extends Fragment {
                     String shopName = receiptJson.optString("shop_name", "Không rõ");
                     long amount = receiptJson.optLong("amount", 0);
                     String dateStr = receiptJson.optString("date", "");
-
+                    String category = receiptJson.optString("category", "Khác");
                     long dateMillis = System.currentTimeMillis();
                     if (!dateStr.isEmpty()) {
                         try {
@@ -445,7 +445,7 @@ public class ScanBillFragment extends Fragment {
                         requireActivity().runOnUiThread(() -> {
                             binding.tvStatus.setText("Phân tích xong!");
                             ScanResultFragment resultFragment = ScanResultFragment.newInstance(
-                                    shopName, amount, finalDateMillis, rawText);
+                                    shopName, amount, finalDateMillis, rawText,category);
                             requireActivity().getSupportFragmentManager().beginTransaction()
                                     .replace(R.id.fragment_container, resultFragment)
                                     .addToBackStack(null)
@@ -467,7 +467,7 @@ public class ScanBillFragment extends Fragment {
 
     private void navigateToResult(String shopName, long amount, String rawText) {
         ScanResultFragment fragment = ScanResultFragment.newInstance(
-                shopName, amount, System.currentTimeMillis(), rawText);
+                shopName, amount, System.currentTimeMillis(), rawText,"Khác");
 
         requireActivity()
                 .getSupportFragmentManager()
@@ -477,7 +477,7 @@ public class ScanBillFragment extends Fragment {
                 .commit();
     }
 
-    // ── Parse tên cửa hàng ────────────────────────────────────────
+    // Parse tên cửa hàng
     private String parseShopName(String text) {
         String[] lines = text.split("\n");
         for (String line : lines) {
@@ -487,7 +487,7 @@ public class ScanBillFragment extends Fragment {
         return "Không rõ";
     }
 
-    // ── Parse số tiền (lấy số lớn nhất) ──────────────────────────
+    // Parse số tiền (lấy số lớn nhất)
     private long parseAmount(String text) {
         java.util.regex.Pattern pattern =
                 java.util.regex.Pattern.compile("\\d[\\d.,]{2,}");

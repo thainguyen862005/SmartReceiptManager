@@ -68,7 +68,7 @@
                 android:drawablePadding="4dp"
                 android:gravity="center_vertical"
                 android:text="Quét thành công"
-                android:textColor="#00C853"
+                android:textColor="#1B5E20"
                 android:textSize="14sp" />
 
             <TextView
@@ -138,6 +138,7 @@
                         android:drawableStart="@drawable/ic_store"
                         android:drawablePadding="8dp"
                         android:inputType="text"
+                        android:hint="Tên cửa hàng"
                         android:paddingStart="8dp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
@@ -158,6 +159,7 @@
                     app:boxCornerRadiusBottomEnd="8dp"
                     app:boxCornerRadiusBottomStart="8dp"
                     app:boxCornerRadiusTopEnd="8dp"
+                    android:hint="Ngày"
                     app:boxCornerRadiusTopStart="8dp"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
@@ -199,10 +201,12 @@
                         android:drawablePadding="8dp"
                         android:inputType="numberDecimal"
                         android:paddingStart="8dp"
-                        android:textColor="#00C853"
+                        android:hint="Tổng tiền"
+                        android:textColor="#1B5E20"
                         android:textStyle="bold" />
 
                 </com.google.android.material.textfield.TextInputLayout>
+
 
                 <!-- Phân loại -->
                 <TextView
@@ -213,10 +217,22 @@
                     android:textColor="#555555"
                     android:textSize="13sp" />
 
+                <!-- [MỚI] Loading indicator hiện khi đang tải danh mục từ Firestore -->
+                <ProgressBar
+                    android:id="@+id/progressCategories"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="visible" />
+
+                <!-- [SỬA] Ẩn sẵn chipGroup, code sẽ hiện lại sau khi load chip xong
+                     để tránh hiệu ứng giật (chip tĩnh hiện rồi bị xóa thay) -->
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/chipGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:visibility="visible"
                     app:singleSelection="true">
 
                     <com.google.android.material.chip.Chip
