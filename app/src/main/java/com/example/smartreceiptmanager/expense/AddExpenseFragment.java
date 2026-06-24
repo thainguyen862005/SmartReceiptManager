@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.smartreceiptmanager.R;
+import com.example.smartreceiptmanager.firestore.SyncManager;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
 
@@ -273,6 +274,9 @@ public class AddExpenseFragment extends Fragment {
         expense.setReceiptText(receiptText);
 
         expenseStore.saveExpense(expense);
+
+        // Trigger sync lên Firestore ngay sau khi lưu local
+        SyncManager.getInstance(requireContext()).syncSingleExpense(expense);
 
         String message = editingExpense == null ? "Đã lưu khoản chi" : "Đã cập nhật khoản chi";
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
