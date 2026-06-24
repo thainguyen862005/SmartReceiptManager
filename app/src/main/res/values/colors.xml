@@ -1,8 +1,15 @@
 <resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="primary_green">#007A4D</color>
+    <color name="primary_green_dark">#005F3D</color>
+    <color name="mint_green">#DDF5EB</color>
+    <color name="background_light">#F7F8FA</color>
+    <color name="text_dark">#242424</color>
+    <color name="text_gray">#7A7A7A</color>
+    <color name="border_light">#DDDDDD</color>
     <color name="green_primary">#00693E</color>
     <color name="green_light">#E6F0EB</color>
-    <color name="white">#FFFFFF</color>
-    <color name="black">#000000</color>
 
     <color name="bg_background">#F8F9FA</color>
     <color name="bg_surface">#FFFFFF</color>
