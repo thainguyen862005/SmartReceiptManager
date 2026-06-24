@@ -12,7 +12,8 @@ import com.example.smartreceiptmanager.statistics.StatisticsFragment;
 import com.example.smartreceiptmanager.expense.ExpenseListFragment;
 import com.example.smartreceiptmanager.home.HomeFragment;
 import com.example.smartreceiptmanager.scanbill.ScanBillFragment;
-import com.example.smartreceiptmanager.expense.AddExpenseFragment; // Thêm import này
+import com.example.smartreceiptmanager.expense.AddExpenseFragment;
+import com.example.smartreceiptmanager.firestore.SyncManager;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -82,6 +83,13 @@ public class MainActivity extends AppCompatActivity {
                 setActiveTab(TAB_STATISTICS);
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Mỗi khi app vào foreground, thử sync các expense chưa được đồng bộ
+        SyncManager.getInstance(this).syncPendingIfOnline();
     }
 
     private void chuyenFragment(Fragment fragment) {
