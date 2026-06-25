@@ -1,7 +1,10 @@
 package com.example.smartreceiptmanager.expense;
 
+import static java.security.AccessController.getContext;
+
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -9,6 +12,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -157,5 +161,24 @@ public class ExpenseStore {
                 object.optLong("createdAt"),
                 object.optLong("updatedAt")
         );
+    }
+
+    //tránh lưu trùng 2 lần
+    public boolean isDuplicate(String merchant, double amount, long date) {
+        List<Expense> expenses = getAllExpenses();
+        for (Expense e : expenses) {
+            if (e.getMerchantName().equalsIgnoreCase(merchant) && e.getAmount() == amount && sameDay(e.getDate(), date)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    private boolean sameDay(long first, long second) {
+        java.util.Calendar c1 = java.util.Calendar.getInstance();
+        java.util.Calendar c2 = java.util.Calendar.getInstance();
+        c1.setTimeInMillis(first);
+        c2.setTimeInMillis(second);
+        return c1.get(java.util.Calendar.YEAR) == c2.get(java.util.Calendar.YEAR)
+                && c1.get(java.util.Calendar.DAY_OF_YEAR) == c2.get(java.util.Calendar.DAY_OF_YEAR);
     }
 }

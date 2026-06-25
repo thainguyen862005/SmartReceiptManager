@@ -20,6 +20,7 @@ import com.example.smartreceiptmanager.firestore.SyncManager;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
 
+import java.text.DecimalFormat;
 import java.util.Calendar;
 
 public class AddExpenseFragment extends Fragment {
@@ -122,6 +123,8 @@ public class AddExpenseFragment extends Fragment {
         view.findViewById(R.id.layoutDate).setOnClickListener(v -> showDatePicker());
 
         edtAmount.addTextChangedListener(new TextWatcher() {
+            private String current = "";
+
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
@@ -132,6 +135,18 @@ public class AddExpenseFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
+                if (!s.toString().equals(current)) {
+                    edtAmount.removeTextChangedListener(this);
+                    String cleanString = s.toString().replace(".", "");
+                    if (!cleanString.isEmpty()) {
+                        long value = Long.parseLong(cleanString);
+                        DecimalFormat formatter = new DecimalFormat("#,###");
+                        current = formatter.format(value).replace(",", ".");
+                        edtAmount.setText(current);
+                        edtAmount.setSelection(current.length());
+                    }
+                    edtAmount.addTextChangedListener(this);
+                }
             }
         });
 
@@ -177,7 +192,7 @@ public class AddExpenseFragment extends Fragment {
             btnSave.setText("Cập nhật ✓");
             btnDelete.setVisibility(View.VISIBLE);
 
-            edtAmount.setText(String.valueOf((long) editingExpense.getAmount()));
+            edtAmount.setText(CurrencyUtils.formatAmount(editingExpense.getAmount()));
             edtMerchant.setText(editingExpense.getMerchantName());
             edtNote.setText(editingExpense.getNote());
             edtReceiptText.setText(editingExpense.getReceiptText());
@@ -255,14 +270,25 @@ public class AddExpenseFragment extends Fragment {
             return;
         }
 
-        double amount = CurrencyUtils.parseAmount(amountText);
-        if (amount <= 0) {
-            Toast.makeText(requireContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+        if (merchant.trim().isEmpty()) {
+            edtMerchant.setError("Vui lòng nhập nơi chi tiêu");
+            edtMerchant.requestFocus();
+            return;
+        }
+        if (selectedCategory == null ||
+                selectedCategory.trim().isEmpty()) {
+            Toast.makeText(getContext(), "Vui lòng chọn danh mục", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (merchant.isEmpty()) {
-            merchant = note.isEmpty() ? selectedCategory : note;
+        double amount = CurrencyUtils.parseAmount(amountText);
+        if (amount <= 0) {
+            if (editingExpense == null && expenseStore.isDuplicate(merchant, amount, selectedDate)) {
+                Toast.makeText(requireContext(), "Giao dịch đã tồn tại", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Toast.makeText(requireContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+            return;
         }
 
         Expense expense = editingExpense == null ? new Expense() : editingExpense;
