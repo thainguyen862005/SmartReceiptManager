@@ -17,10 +17,11 @@ public class ExpenseStore {
     private static final String KEY_EXPENSES = "expenses";
 
     private final SharedPreferences preferences;
+    private final Context context;
 
     public ExpenseStore(Context context) {
-        preferences = context.getApplicationContext()
-                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        this.context = context.getApplicationContext();
+        preferences = this.context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
     public List<Expense> getAllExpenses() {
@@ -80,6 +81,23 @@ public class ExpenseStore {
         }
 
         persist(expenses);
+        checkBudget();
+    }
+
+    private void checkBudget() {
+        SharedPreferences globalPrefs = context.getSharedPreferences("smart_receipt_prefs", Context.MODE_PRIVATE);
+        boolean isBudgetNotifEnabled = globalPrefs.getBoolean("notif_budget", true);
+        if (isBudgetNotifEnabled) {
+            long budgetLimit = globalPrefs.getLong("budget_limit", 10000000L);
+            double currentMonthTotal = getCurrentMonthTotal();
+            if (currentMonthTotal >= budgetLimit) {
+                com.example.smartreceiptmanager.utils.NotificationHelper.showNotification(
+                        context,
+                        "Cảnh báo vượt ngân sách",
+                        "Tổng chi tiêu tháng này của bạn đã vượt quá hạn mức (" + com.example.smartreceiptmanager.utils.CurrencyUtils.formatVnd(currentMonthTotal) + " / " + com.example.smartreceiptmanager.utils.CurrencyUtils.formatVnd(budgetLimit) + ")!"
+                );
+            }
+        }
     }
 
     public void deleteExpense(String id) {
