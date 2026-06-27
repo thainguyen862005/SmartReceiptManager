@@ -53,46 +53,52 @@
                 android:textStyle="bold" />
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="86dp"
-                android:layout_marginHorizontal="32dp"
-                android:layout_marginTop="18dp"
-                android:gravity="center"
-                android:orientation="horizontal">
+            android:layout_width="match_parent"
+            android:layout_height="86dp"
+            android:layout_marginHorizontal="32dp"
+            android:layout_marginTop="18dp"
+            android:gravity="center"
+            android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="36dp"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="đ"
-                    android:textColor="@color/text_main"
-                    android:textSize="28sp"
-                    android:textStyle="bold" />
+                android:layout_width="36dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="đ"
+                android:textColor="@color/text_main"
+                android:textSize="28sp"
+                android:textStyle="bold" />
 
                 <EditText
-                    android:id="@+id/edtAmount"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/primary_green"
-                    android:gravity="center"
-                    android:hint="0"
-                    android:includeFontPadding="false"
-                    android:inputType="number"
-                    android:maxLines="1"
-                    android:paddingHorizontal="0dp"
-                    android:singleLine="true"
-                    android:textColor="@color/primary_green"
-                    android:textColorHint="@color/border_light"
-                    android:textSize="36sp"
-                    android:textStyle="bold" />
+                android:id="@+id/edtAmount"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:backgroundTint="@color/primary_green"
+                android:gravity="center"
+                android:hint="0"
+                android:includeFontPadding="false"
+                android:inputType="number"
+                android:maxLines="1"
+                android:paddingHorizontal="0dp"
+                android:singleLine="true"
+                android:textColor="@color/primary_green"
+                android:textColorHint="@color/border_light"
+                android:textSize="36sp"
+                android:textStyle="bold" />
             </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nơi chi tiêu"/>
 
             <EditText
                 android:id="@+id/edtMerchant"
-                android:layout_width="1dp"
-                android:layout_height="1dp"
-                android:visibility="gone" />
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_input_figma"
+                android:hint="Ví dụ: Highlands Coffee"/>
 
             <TextView
                 android:layout_width="match_parent"

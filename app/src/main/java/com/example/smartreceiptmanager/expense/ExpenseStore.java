@@ -1,10 +1,8 @@
 package com.example.smartreceiptmanager.expense;
 
-import static java.security.AccessController.getContext;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -12,7 +10,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,7 +37,12 @@ public class ExpenseStore {
         } catch (Exception ignored) {
         }
 
-        Collections.sort(expenses, (first, second) -> Long.compare(second.getDate(), first.getDate()));
+        Collections.sort(expenses, new Comparator<Expense>() {
+            @Override
+            public int compare(Expense o1, Expense o2) {
+                return Long.compare(o2.getDate(), o1.getDate());
+            }
+        });
         return expenses;
     }
 
@@ -68,7 +70,6 @@ public class ExpenseStore {
         }
 
         expense.setUpdatedAt(now);
-        expense.setSynced(false);
 
         boolean updated = false;
         for (int i = 0; i < expenses.size(); i++) {
@@ -120,17 +121,20 @@ public class ExpenseStore {
     }
 
     private void persist(List<Expense> expenses) {
-        Collections.sort(expenses, Comparator.comparingLong(Expense::getDate).reversed());
-        JSONArray array = new JSONArray();
 
+        Collections.sort(expenses, new Comparator<Expense>() {
+            @Override
+            public int compare(Expense o1, Expense o2) {
+                return Long.compare(o2.getDate(), o1.getDate());
+            }
+        });
+        JSONArray array = new JSONArray();
         try {
             for (Expense expense : expenses) {
                 array.put(toJson(expense));
             }
-        } catch (Exception ignored) {
-        }
-
-        preferences.edit().putString(KEY_EXPENSES, array.toString()).apply();
+        } catch (Exception ignored) {}
+        preferences.edit().putString(KEY_EXPENSES, array.toString()).commit();
     }
 
     private JSONObject toJson(Expense expense) throws Exception {
@@ -164,10 +168,11 @@ public class ExpenseStore {
     }
 
     //tránh lưu trùng 2 lần
-    public boolean isDuplicate(String merchant, double amount, long date) {
-        List<Expense> expenses = getAllExpenses();
-        for (Expense e : expenses) {
-            if (e.getMerchantName().equalsIgnoreCase(merchant) && e.getAmount() == amount && sameDay(e.getDate(), date)) {
+    public boolean isDuplicate(String merchant,double amount,long date){
+        merchant = merchant.trim();
+        for(Expense e:getAllExpenses()){
+            String oldMerchant = e.getMerchantName()==null ? "" : e.getMerchantName().trim();
+            if(oldMerchant.equalsIgnoreCase(merchant) && Math.abs(e.getAmount()-amount)<0.01 && sameDay(e.getDate(),date)){
                 return true;
             }
         }
