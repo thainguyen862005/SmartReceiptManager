@@ -45,6 +45,8 @@ public class AddExpenseFragment extends Fragment {
     private Expense editingExpense;
     private String selectedCategory = "Ăn uống";
     private long selectedDate = System.currentTimeMillis();
+    private CategorySuggestionEngine suggestionEngine;
+    private boolean isLoadingData = false;
 
     public static AddExpenseFragment newEditInstance(String expenseId) {
         AddExpenseFragment fragment = new AddExpenseFragment();
@@ -86,15 +88,41 @@ public class AddExpenseFragment extends Fragment {
     }
 
     @Override
-    public void onViewCreated(
-            @NonNull View view,
-            @Nullable Bundle savedInstanceState
-    ) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         expenseStore = new ExpenseStore(requireContext());
+    // xử lý Gợi ý danh mục
+        suggestionEngine = new CategorySuggestionEngine();
+
         edtAmount = view.findViewById(R.id.edtAmount);
+
         edtMerchant = view.findViewById(R.id.edtMerchant);
+        edtMerchant.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (isLoadingData) {
+                    return;
+                }
+                String merchant = s.toString().trim();
+                if (merchant.length() < 3) {
+                    return;
+                }
+                if (editingExpense == null) {
+                    String category = suggestionEngine.suggestCategory(merchant);
+                    if (!category.equals("Khác")) {
+                        selectCategory(category);
+                    }
+                }
+            }
+        });
         edtNote = view.findViewById(R.id.edtNote);
         edtReceiptText = view.findViewById(R.id.edtReceiptText);
         txtScreenTitle = view.findViewById(R.id.txtScreenTitle);
@@ -139,19 +167,21 @@ public class AddExpenseFragment extends Fragment {
                     edtAmount.removeTextChangedListener(this);
                     String cleanString = s.toString().replace(".", "");
                     if (!cleanString.isEmpty()) {
+                        try{
                         long value = Long.parseLong(cleanString);
                         DecimalFormat formatter = new DecimalFormat("#,###");
                         current = formatter.format(value).replace(",", ".");
                         edtAmount.setText(current);
                         edtAmount.setSelection(current.length());
-                    }
+                    }catch (NumberFormatException e){
+                        }}
                     edtAmount.addTextChangedListener(this);
                 }
             }
         });
-
+        isLoadingData = true;
         loadInitialData();
-    }
+        isLoadingData = false;    }
 
     private void selectCategory(String category) {
         selectedCategory = category;
@@ -165,16 +195,16 @@ public class AddExpenseFragment extends Fragment {
         cardShopping.setBackgroundResource(R.drawable.bg_category_normal_figma);
         cardBill.setBackgroundResource(R.drawable.bg_category_normal_figma);
 
-        if (category.equals("Ăn uống")) {
+        if ("Ăn uống".equals(category)) {
             cardFood.setSelected(true);
             cardFood.setBackgroundResource(R.drawable.bg_category_selected_figma);
-        } else if (category.equals("Di chuyển")) {
+        } else if ("Di chuyển".equals(category)) {
             cardTransport.setSelected(true);
             cardTransport.setBackgroundResource(R.drawable.bg_category_selected_figma);
-        } else if (category.equals("Mua sắm")) {
+        } else if ("Mua sắm".equals(category)) {
             cardShopping.setSelected(true);
             cardShopping.setBackgroundResource(R.drawable.bg_category_selected_figma);
-        } else if (category.equals("Hóa đơn")) {
+        } else if ("Hóa đơn".equals(category)) {
             cardBill.setSelected(true);
             cardBill.setBackgroundResource(R.drawable.bg_category_selected_figma);
         }
@@ -214,8 +244,7 @@ public class AddExpenseFragment extends Fragment {
                 edtMerchant.setText(merchant);
 
                 if (amount > 0) {
-                    edtAmount.setText(String.valueOf((long) amount));
-                }
+                    edtAmount.setText(CurrencyUtils.formatAmount(amount));                }
 
                 if (date > 0) {
                     selectedDate = date;
@@ -254,9 +283,7 @@ public class AddExpenseFragment extends Fragment {
     private void updateDateText() {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(selectedDate);
-        txtDate.setText("Hôm nay, " + calendar.get(Calendar.DAY_OF_MONTH)
-                + " Th" + (calendar.get(Calendar.MONTH) + 1)
-                + " " + calendar.get(Calendar.YEAR));
+        txtDate.setText(DateUtils.formatDate(selectedDate));
     }
 
     private void saveExpense() {
@@ -280,14 +307,16 @@ public class AddExpenseFragment extends Fragment {
             Toast.makeText(getContext(), "Vui lòng chọn danh mục", Toast.LENGTH_SHORT).show();
             return;
         }
-
+       // Duplicate Check
         double amount = CurrencyUtils.parseAmount(amountText);
+
         if (amount <= 0) {
-            if (editingExpense == null && expenseStore.isDuplicate(merchant, amount, selectedDate)) {
-                Toast.makeText(requireContext(), "Giao dịch đã tồn tại", Toast.LENGTH_SHORT).show();
-                return;
-            }
             Toast.makeText(requireContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (editingExpense == null && expenseStore.isDuplicate(merchant, amount, selectedDate)) {
+            Toast.makeText(requireContext(), "Giao dịch đã tồn tại", Toast.LENGTH_SHORT).show();
             return;
         }
 
