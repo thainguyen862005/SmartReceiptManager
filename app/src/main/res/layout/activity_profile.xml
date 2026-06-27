@@ -19,12 +19,16 @@
             android:textStyle="bold"
             android:layout_centerVertical="true"/>
         <ImageView
+            android:id="@+id/btnNotifications"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@android:drawable/ic_popup_reminder"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            app:tint="?attr/colorSecondary"/>
+            app:tint="?attr/colorSecondary"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
     </RelativeLayout>
 
     <LinearLayout
@@ -49,6 +53,7 @@
                 app:shapeAppearanceOverlay="@style/CircleImageView"/>
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/btnEditAvatar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignBottom="@id/imgAvatar"
@@ -101,6 +106,7 @@
         android:paddingHorizontal="16dp">
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/itemAccountSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -116,6 +122,7 @@
         </androidx.cardview.widget.CardView>
 
         <androidx.cardview.widget.CardView
+            android:id="@+id/itemNotificationSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"

@@ -13,6 +13,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import android.net.Uri;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.auth.EmailAuthProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -101,6 +104,87 @@ public class AuthViewModel extends AndroidViewModel {
     public void logout() {
         auth.signOut();
         userLiveData.setValue(null);
+    }
+
+    public void updateAvatar(String newUrl) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                    .setPhotoUri(Uri.parse(newUrl))
+                    .build();
+            user.updateProfile(profileUpdates)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            String uid = user.getUid();
+                            databaseRef.child("User_Profiles/users").child(uid).child("profile").child("avatar_url").setValue(newUrl);
+                            userLiveData.setValue(auth.getCurrentUser());
+                        }
+                    });
+        }
+    }
+
+    public void updateDisplayName(String newName) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                    .setDisplayName(newName)
+                    .build();
+            user.updateProfile(profileUpdates)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            String uid = user.getUid();
+                            databaseRef.child("User_Profiles/users").child(uid).child("profile").child("full_name").setValue(newName);
+                            userLiveData.setValue(auth.getCurrentUser());
+                        }
+                    });
+        }
+    }
+
+    public void changePassword(String oldPassword, String newPassword, OnPasswordChangeListener listener) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null && user.getEmail() != null) {
+            AuthCredential credential = EmailAuthProvider.getCredential(user.getEmail(), oldPassword);
+            user.reauthenticate(credential)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            user.updatePassword(newPassword)
+                                    .addOnCompleteListener(updateTask -> {
+                                        if (updateTask.isSuccessful()) {
+                                            listener.onSuccess();
+                                        } else {
+                                            listener.onFailure(updateTask.getException() != null ? updateTask.getException().getMessage() : "Update password failed");
+                                        }
+                                    });
+                        } else {
+                            listener.onFailure("Incorrect old password");
+                        }
+                    });
+        } else {
+            listener.onFailure("User not logged in");
+        }
+    }
+
+    public interface OnPasswordChangeListener {
+        void onSuccess();
+        void onFailure(String error);
+    }
+
+    public void deleteAccount() {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            String uid = user.getUid();
+            user.delete()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            databaseRef.child("User_Profiles/users").child(uid).removeValue();
+                            databaseRef.child("User_Profiles/wallets").child(uid).removeValue();
+                            databaseRef.child("User_Profiles/categories").child(uid).removeValue();
+                            userLiveData.setValue(null);
+                        } else {
+                            errorLiveData.setValue(task.getException() != null ? task.getException().getMessage() : "Delete account failed");
+                        }
+                    });
+        }
     }
 
     private void onRegisterSuccess(FirebaseUser user) {
