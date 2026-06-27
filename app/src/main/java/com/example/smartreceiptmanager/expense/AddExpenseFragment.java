@@ -45,6 +45,7 @@ public class AddExpenseFragment extends Fragment {
     private Expense editingExpense;
     private String selectedCategory = "Ăn uống";
     private long selectedDate = System.currentTimeMillis();
+    private CategorySuggestionEngine suggestionEngine;
 
     public static AddExpenseFragment newEditInstance(String expenseId) {
         AddExpenseFragment fragment = new AddExpenseFragment();
@@ -91,10 +92,36 @@ public class AddExpenseFragment extends Fragment {
             @Nullable Bundle savedInstanceState
     ) {
         super.onViewCreated(view, savedInstanceState);
-
         expenseStore = new ExpenseStore(requireContext());
+    // xử lý Gợi ý danh mục
+        suggestionEngine = new CategorySuggestionEngine();
+
         edtAmount = view.findViewById(R.id.edtAmount);
+
         edtMerchant = view.findViewById(R.id.edtMerchant);
+        edtMerchant.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String merchant = s.toString().trim().toLowerCase();
+                if (merchant.trim().length() < 3) {
+                    return;
+                }
+                if (editingExpense == null) {
+                    String category = suggestionEngine.suggestCategory(merchant);
+                    if (!category.equals("Khác")) {
+                        selectCategory(category);
+                    }
+                }
+            }
+        });
         edtNote = view.findViewById(R.id.edtNote);
         edtReceiptText = view.findViewById(R.id.edtReceiptText);
         txtScreenTitle = view.findViewById(R.id.txtScreenTitle);
@@ -214,8 +241,7 @@ public class AddExpenseFragment extends Fragment {
                 edtMerchant.setText(merchant);
 
                 if (amount > 0) {
-                    edtAmount.setText(String.valueOf((long) amount));
-                }
+                    edtAmount.setText(CurrencyUtils.formatAmount(amount));                }
 
                 if (date > 0) {
                     selectedDate = date;
@@ -280,14 +306,16 @@ public class AddExpenseFragment extends Fragment {
             Toast.makeText(getContext(), "Vui lòng chọn danh mục", Toast.LENGTH_SHORT).show();
             return;
         }
-
+       // Duplicate Check
         double amount = CurrencyUtils.parseAmount(amountText);
+
         if (amount <= 0) {
-            if (editingExpense == null && expenseStore.isDuplicate(merchant, amount, selectedDate)) {
-                Toast.makeText(requireContext(), "Giao dịch đã tồn tại", Toast.LENGTH_SHORT).show();
-                return;
-            }
             Toast.makeText(requireContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (editingExpense == null && expenseStore.isDuplicate(merchant, amount, selectedDate)) {
+            Toast.makeText(requireContext(), "Giao dịch đã tồn tại", Toast.LENGTH_SHORT).show();
             return;
         }
 
