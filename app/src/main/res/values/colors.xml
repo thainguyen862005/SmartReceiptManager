@@ -17,4 +17,5 @@
     <color name="text_secondary">#757575</color>
     <color name="bg_logout_btn">#FFEAEA</color>
     <color name="text_logout_btn">#C62828</color>
+    <color name="danger_red">#B9181E</color>
 </resources>

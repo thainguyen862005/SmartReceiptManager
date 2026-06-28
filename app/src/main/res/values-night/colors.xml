@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_green">#00A86B</color>
+    <color name="primary_green_dark">#00D185</color>
+    <color name="mint_green">#A8DBBF</color>
+    <color name="background_light">#121212</color>
+    <color name="text_dark">#E0E0E0</color>
+    <color name="text_gray">#B0B0B0</color>
+    <color name="border_light">#2C2C2C</color>
+    <color name="green_primary">#00A86B</color>
+    <color name="green_light">#1A3326</color>
+
+    <color name="bg_background">#121212</color>
+    <color name="bg_surface">#1E1E1E</color>
+    <color name="text_main">#FFFFFF</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="bg_logout_btn">#2C1A1A</color>
+    <color name="text_logout_btn">#FF8A80</color>
+    <color name="danger_red">#FF5252</color>
+</resources>

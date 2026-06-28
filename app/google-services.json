@@ -1,26 +1,45 @@
 {
   "project_info": {
-    "project_number": "572242995350",
-    "project_id": "smart-receipt-manager",
-    "storage_bucket": "smart-receipt-manager.firebasestorage.app"
+    "project_number": "646038986643",
+    "firebase_url": "https://appmobile-123-default-rtdb.firebaseio.com",
+    "project_id": "appmobile-123",
+    "storage_bucket": "appmobile-123.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:572242995350:android:67f4cd4ac21b8e61367ab7",
+        "mobilesdk_app_id": "1:646038986643:android:23473cfd62160ecc051266",
         "android_client_info": {
           "package_name": "com.example.smartreceiptmanager"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "646038986643-0uktlagbmhn6vvos9p6t8pavtm3jgq9r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartreceiptmanager",
+            "certificate_hash": "190910e9df273891f65ddc14167d80a98a46c2e4"
+          }
+        },
+        {
+          "client_id": "646038986643-hdbauekphrq3qtl969fachs77ugv7tme.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBFANZMUGtM81BWc6gi7iVI2UEuIiJkXgA"
+          "current_key": "AIzaSyC822JdIdE_eIeAmeynCRW9x84-HKqX5hg"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "646038986643-hdbauekphrq3qtl969fachs77ugv7tme.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -1,5 +1,6 @@
 package com.example.smartreceiptmanager.expense;
 
+
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -18,10 +19,11 @@ public class ExpenseStore {
     private static final String KEY_PENDING_DELETED_IDS = "pending_deleted_expense_ids";
 
     private final SharedPreferences preferences;
+    private final Context context;
 
     public ExpenseStore(Context context) {
-        preferences = context.getApplicationContext()
-                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        this.context = context.getApplicationContext();
+        preferences = this.context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
     public List<Expense> getAllExpenses() {
@@ -37,7 +39,12 @@ public class ExpenseStore {
         } catch (Exception ignored) {
         }
 
-        Collections.sort(expenses, (first, second) -> Long.compare(second.getDate(), first.getDate()));
+        Collections.sort(expenses, new Comparator<Expense>() {
+            @Override
+            public int compare(Expense o1, Expense o2) {
+                return Long.compare(o2.getDate(), o1.getDate());
+            }
+        });
         return expenses;
     }
 
@@ -65,7 +72,6 @@ public class ExpenseStore {
         }
 
         expense.setUpdatedAt(now);
-        expense.setSynced(false);
 
         boolean updated = false;
         for (int i = 0; i < expenses.size(); i++) {
@@ -82,6 +88,23 @@ public class ExpenseStore {
 
         removePendingDelete(expense.getId());
         persist(expenses);
+        checkBudget();
+    }
+
+    private void checkBudget() {
+        SharedPreferences globalPrefs = context.getSharedPreferences("smart_receipt_prefs", Context.MODE_PRIVATE);
+        boolean isBudgetNotifEnabled = globalPrefs.getBoolean("notif_budget", true);
+        if (isBudgetNotifEnabled) {
+            long budgetLimit = globalPrefs.getLong("budget_limit", 10000000L);
+            double currentMonthTotal = getCurrentMonthTotal();
+            if (currentMonthTotal >= budgetLimit) {
+                com.example.smartreceiptmanager.utils.NotificationHelper.showNotification(
+                        context,
+                        "Cảnh báo vượt ngân sách",
+                        "Tổng chi tiêu tháng này của bạn đã vượt quá hạn mức (" + com.example.smartreceiptmanager.utils.CurrencyUtils.formatVnd(currentMonthTotal) + " / " + com.example.smartreceiptmanager.utils.CurrencyUtils.formatVnd(budgetLimit) + ")!"
+                );
+            }
+        }
     }
 
     public void deleteExpense(String id) {
@@ -98,3 +121,146 @@ public class ExpenseStore {
                 expenses.remove(i);
             }
         }
+
+        persist(expenses);
+
+        if (shouldSyncDelete) {
+            addPendingDelete(id);
+        }
+    }
+
+    public List<String> getPendingDeletedExpenseIds() {
+        List<String> ids = new ArrayList<>();
+        String raw = preferences.getString(KEY_PENDING_DELETED_IDS, "[]");
+
+        try {
+            JSONArray array = new JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                String id = array.optString(i, "");
+                if (!id.trim().isEmpty()) {
+                    ids.add(id);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return ids;
+    }
+
+    public void markDeleteSynced(String id) {
+        removePendingDelete(id);
+    }
+
+    public double getCurrentMonthTotal() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int currentMonth = now.get(java.util.Calendar.MONTH);
+        int currentYear = now.get(java.util.Calendar.YEAR);
+        double total = 0;
+
+        for (Expense expense : getAllExpenses()) {
+            java.util.Calendar itemDate = java.util.Calendar.getInstance();
+            itemDate.setTimeInMillis(expense.getDate());
+            if (itemDate.get(java.util.Calendar.MONTH) == currentMonth
+                    && itemDate.get(java.util.Calendar.YEAR) == currentYear) {
+                total += expense.getAmount();
+            }
+        }
+
+        return total;
+    }
+
+    private void persist(List<Expense> expenses) {
+
+        Collections.sort(expenses, new Comparator<Expense>() {
+            @Override
+            public int compare(Expense o1, Expense o2) {
+                return Long.compare(o2.getDate(), o1.getDate());
+            }
+        });
+        JSONArray array = new JSONArray();
+        try {
+            for (Expense expense : expenses) {
+                array.put(toJson(expense));
+            }
+        } catch (Exception ignored) {}
+        preferences.edit().putString(KEY_EXPENSES, array.toString()).commit();
+    }
+
+    private void addPendingDelete(String id) {
+        List<String> ids = getPendingDeletedExpenseIds();
+        if (!ids.contains(id)) {
+            ids.add(id);
+            persistPendingDeletes(ids);
+        }
+    }
+
+    private void removePendingDelete(String id) {
+        if (id == null) {
+            return;
+        }
+
+        List<String> ids = getPendingDeletedExpenseIds();
+        if (ids.remove(id)) {
+            persistPendingDeletes(ids);
+        }
+    }
+
+    private void persistPendingDeletes(List<String> ids) {
+        JSONArray array = new JSONArray();
+        for (String id : ids) {
+            array.put(id);
+        }
+
+        preferences.edit().putString(KEY_PENDING_DELETED_IDS, array.toString()).commit();
+    }
+
+    private JSONObject toJson(Expense expense) throws Exception {
+        JSONObject object = new JSONObject();
+        object.put("id", expense.getId());
+        object.put("merchantName", expense.getMerchantName());
+        object.put("amount", expense.getAmount());
+        object.put("category", expense.getCategory());
+        object.put("date", expense.getDate());
+        object.put("note", expense.getNote());
+        object.put("receiptText", expense.getReceiptText());
+        object.put("synced", expense.isSynced());
+        object.put("createdAt", expense.getCreatedAt());
+        object.put("updatedAt", expense.getUpdatedAt());
+        return object;
+    }
+
+    private Expense fromJson(JSONObject object) {
+        return new Expense(
+                object.optString("id"),
+                object.optString("merchantName"),
+                object.optDouble("amount"),
+                object.optString("category", "Khác"),
+                object.optLong("date", System.currentTimeMillis()),
+                object.optString("note"),
+                object.optString("receiptText"),
+                object.optBoolean("synced"),
+                object.optLong("createdAt"),
+                object.optLong("updatedAt")
+        );
+    }
+
+    //tránh lưu trùng 2 lần
+    public boolean isDuplicate(String merchant,double amount,long date){
+        merchant = merchant.trim();
+        for(Expense e:getAllExpenses()){
+            String oldMerchant = e.getMerchantName()==null ? "" : e.getMerchantName().trim();
+            if(oldMerchant.equalsIgnoreCase(merchant) && Math.abs(e.getAmount()-amount)<0.01 && sameDay(e.getDate(),date)){
+                return true;
+            }
+        }
+        return false;
+    }
+    private boolean sameDay(long first, long second) {
+        java.util.Calendar c1 = java.util.Calendar.getInstance();
+        java.util.Calendar c2 = java.util.Calendar.getInstance();
+        c1.setTimeInMillis(first);
+        c2.setTimeInMillis(second);
+        return c1.get(java.util.Calendar.YEAR) == c2.get(java.util.Calendar.YEAR)
+                && c1.get(java.util.Calendar.DAY_OF_YEAR) == c2.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+}

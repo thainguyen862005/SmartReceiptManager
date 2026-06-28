@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="@color/bg_background">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -27,7 +27,7 @@
                     android:layout_centerVertical="true"
                     android:gravity="center"
                     android:text="‹"
-                    android:textColor="#435047"
+                    android:textColor="@color/text_secondary"
                     android:textSize="40sp" />
 
                 <TextView
@@ -36,7 +36,7 @@
                     android:layout_centerInParent="true"
                     android:gravity="center"
                     android:text="Chi tiết chi tiêu"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -49,7 +49,7 @@
                     android:layout_marginEnd="20dp"
                     android:gravity="center"
                     android:text="✎"
-                    android:textColor="#006F49"
+                    android:textColor="@color/primary_green"
                     android:textSize="28sp" />
 
                 <TextView
@@ -60,7 +60,7 @@
                     android:layout_centerVertical="true"
                     android:gravity="center"
                     android:text="▥"
-                    android:textColor="#B9181E"
+                    android:textColor="@color/danger_red"
                     android:textSize="28sp" />
             </RelativeLayout>
 
@@ -87,7 +87,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="30dp"
                         android:text="🍴  Ăn uống"
-                        android:textColor="#4F685A"
+                        android:textColor="@color/text_secondary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -98,7 +98,7 @@
                         android:layout_marginTop="20dp"
                         android:gravity="center"
                         android:text="-125.000 đ"
-                        android:textColor="#1D1F20"
+                        android:textColor="@color/text_main"
                         android:textSize="34sp"
                         android:textStyle="bold" />
 
@@ -109,7 +109,7 @@
                         android:layout_marginTop="16dp"
                         android:gravity="center"
                         android:text="▦ Hôm nay, 12:30 PM"
-                        android:textColor="#5A655E"
+                        android:textColor="@color/text_secondary"
                         android:textSize="16sp" />
                 </LinearLayout>
 
@@ -126,7 +126,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="▤ Ghi chú"
-                        android:textColor="#435047"
+                        android:textColor="@color/text_secondary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -136,7 +136,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="26dp"
                         android:text="Ăn trưa với team dự án mới tại quán phở cuốn Hương Mai. Hóa đơn đã bao gồm phí VAT."
-                        android:textColor="#1D1F20"
+                        android:textColor="@color/text_main"
                         android:textSize="16sp"
                         android:lineSpacingExtra="8dp" />
                 </LinearLayout>
@@ -161,7 +161,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Phương thức"
-                            android:textColor="#435047"
+                            android:textColor="@color/text_secondary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -170,7 +170,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="18dp"
                             android:text="▣  Tiền mặt"
-                            android:textColor="#1D1F20"
+                            android:textColor="@color/text_main"
                             android:textSize="18sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -189,7 +189,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Ví chi tiêu"
-                            android:textColor="#435047"
+                            android:textColor="@color/text_secondary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -198,7 +198,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="18dp"
                             android:text="▥  Cá nhân"
-                            android:textColor="#1D1F20"
+                            android:textColor="@color/text_main"
                             android:textSize="18sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -224,7 +224,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="▤ Ảnh hóa đơn"
-                            android:textColor="#435047"
+                            android:textColor="@color/text_secondary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -232,7 +232,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="⌕ Phóng to"
-                            android:textColor="#006F49"
+                            android:textColor="@color/primary_green"
                             android:textSize="16sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -251,7 +251,7 @@
                             android:gravity="center"
                             android:rotation="-8"
                             android:text="SMART RECEIPT\n\nTOTAL 125.000\nVAT INCLUDED"
-                            android:textColor="#555555"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </FrameLayout>
                 </LinearLayout>

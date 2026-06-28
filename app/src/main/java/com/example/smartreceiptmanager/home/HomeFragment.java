@@ -1,9 +1,11 @@
 package com.example.smartreceiptmanager.home;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -11,8 +13,12 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
+import com.bumptech.glide.Glide;
+import com.example.smartreceiptmanager.ProfileActivity;
 import com.example.smartreceiptmanager.R;
+import com.example.smartreceiptmanager.auth.AuthViewModel;
 import com.example.smartreceiptmanager.expense.Expense;
 import com.example.smartreceiptmanager.expense.ExpenseDetailFragment;
 import com.example.smartreceiptmanager.expense.ExpenseStore;
@@ -28,6 +34,9 @@ public class HomeFragment extends Fragment {
     private TextView txtWeekTotal;
     private TextView txtEmptyExpense;
     private LinearLayout layoutExpenseList;
+    private AuthViewModel authViewModel;
+    private ImageView imgHeaderAvatar;
+    private View cardHeaderAvatar;
 
     public HomeFragment() {
         // Required empty public constructor
@@ -48,6 +57,32 @@ public class HomeFragment extends Fragment {
             @Nullable Bundle savedInstanceState
     ) {
         super.onViewCreated(view, savedInstanceState);
+        cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
+        imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
+
+        // 2. Khởi tạo AuthViewModel (Sử dụng requireActivity() để dùng chung tầng dữ liệu với Activity)
+        authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
+
+        // 3. Lắng nghe thông tin User để tự động load ảnh đại diện thực tế
+        authViewModel.getUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
+            if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
+                if (imgHeaderAvatar != null) {
+                    Glide.with(this)
+                            .load(firebaseUser.getPhotoUrl())
+                            .placeholder(android.R.drawable.sym_def_app_icon)
+                            .circleCrop()
+                            .into(imgHeaderAvatar);
+                }
+            }
+        });
+
+        // 4. Bắt sự kiện click vào ô tròn Avatar để mở màn hình Thông tin cá nhân (Profile)
+        if (cardHeaderAvatar != null) {
+            cardHeaderAvatar.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), ProfileActivity.class);
+                startActivity(intent);
+            });
+        }
 
         expenseStore = new ExpenseStore(requireContext());
         txtBalance = view.findViewById(R.id.txtBalance);
@@ -161,5 +196,10 @@ public class HomeFragment extends Fragment {
         }
 
         return R.drawable.bg_avatar_gray;
+    }
+    @Override
+    public void onResume() {
+        super.onResume();
+        renderExpenses();
     }
 }
