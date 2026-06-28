@@ -15,6 +15,7 @@ import java.util.UUID;
 public class ExpenseStore {
     private static final String PREF_NAME = "expense_store";
     private static final String KEY_EXPENSES = "expenses";
+    private static final String KEY_PENDING_DELETED_IDS = "pending_deleted_expense_ids";
 
     private final SharedPreferences preferences;
 
@@ -79,6 +80,7 @@ public class ExpenseStore {
             expenses.add(expense);
         }
 
+        removePendingDelete(expense.getId());
         persist(expenses);
     }
 
@@ -88,74 +90,11 @@ public class ExpenseStore {
         }
 
         List<Expense> expenses = getAllExpenses();
+        boolean shouldSyncDelete = false;
         for (int i = expenses.size() - 1; i >= 0; i--) {
-            if (id.equals(expenses.get(i).getId())) {
+            Expense expense = expenses.get(i);
+            if (id.equals(expense.getId())) {
+                shouldSyncDelete = shouldSyncDelete || expense.isSynced();
                 expenses.remove(i);
             }
         }
-
-        persist(expenses);
-    }
-
-    public double getCurrentMonthTotal() {
-        java.util.Calendar now = java.util.Calendar.getInstance();
-        int currentMonth = now.get(java.util.Calendar.MONTH);
-        int currentYear = now.get(java.util.Calendar.YEAR);
-        double total = 0;
-
-        for (Expense expense : getAllExpenses()) {
-            java.util.Calendar itemDate = java.util.Calendar.getInstance();
-            itemDate.setTimeInMillis(expense.getDate());
-            if (itemDate.get(java.util.Calendar.MONTH) == currentMonth
-                    && itemDate.get(java.util.Calendar.YEAR) == currentYear) {
-                total += expense.getAmount();
-            }
-        }
-
-        return total;
-    }
-
-    private void persist(List<Expense> expenses) {
-        Collections.sort(expenses, Comparator.comparingLong(Expense::getDate).reversed());
-        JSONArray array = new JSONArray();
-
-        try {
-            for (Expense expense : expenses) {
-                array.put(toJson(expense));
-            }
-        } catch (Exception ignored) {
-        }
-
-        preferences.edit().putString(KEY_EXPENSES, array.toString()).apply();
-    }
-
-    private JSONObject toJson(Expense expense) throws Exception {
-        JSONObject object = new JSONObject();
-        object.put("id", expense.getId());
-        object.put("merchantName", expense.getMerchantName());
-        object.put("amount", expense.getAmount());
-        object.put("category", expense.getCategory());
-        object.put("date", expense.getDate());
-        object.put("note", expense.getNote());
-        object.put("receiptText", expense.getReceiptText());
-        object.put("synced", expense.isSynced());
-        object.put("createdAt", expense.getCreatedAt());
-        object.put("updatedAt", expense.getUpdatedAt());
-        return object;
-    }
-
-    private Expense fromJson(JSONObject object) {
-        return new Expense(
-                object.optString("id"),
-                object.optString("merchantName"),
-                object.optDouble("amount"),
-                object.optString("category", "Khác"),
-                object.optLong("date", System.currentTimeMillis()),
-                object.optString("note"),
-                object.optString("receiptText"),
-                object.optBoolean("synced"),
-                object.optLong("createdAt"),
-                object.optLong("updatedAt")
-        );
-    }
-}
