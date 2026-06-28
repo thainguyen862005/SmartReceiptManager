@@ -4,6 +4,7 @@ import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,7 +47,6 @@ public class AddExpenseFragment extends Fragment {
     private String selectedCategory = "Ăn uống";
     private long selectedDate = System.currentTimeMillis();
     private CategorySuggestionEngine suggestionEngine;
-    private boolean isLoadingData = false;
 
     public static AddExpenseFragment newEditInstance(String expenseId) {
         AddExpenseFragment fragment = new AddExpenseFragment();
@@ -97,29 +97,12 @@ public class AddExpenseFragment extends Fragment {
         edtAmount = view.findViewById(R.id.edtAmount);
 
         edtMerchant = view.findViewById(R.id.edtMerchant);
-        edtMerchant.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (isLoadingData) {
-                    return;
-                }
-                String merchant = s.toString().trim();
-                if (merchant.length() < 3) {
-                    return;
-                }
-                if (editingExpense == null) {
-                    String category = suggestionEngine.suggestCategory(merchant);
-                    if (!category.equals("Khác")) {
-                        selectCategory(category);
-                    }
+        edtMerchant.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String merchant = edtMerchant.getText().toString().trim();
+                String category = suggestionEngine.suggestCategory(merchant);
+                if (!category.equals("Khác")) {
+                    selectCategory(category);
                 }
             }
         });
@@ -174,14 +157,16 @@ public class AddExpenseFragment extends Fragment {
                         edtAmount.setText(current);
                         edtAmount.setSelection(current.length());
                     }catch (NumberFormatException e){
-                        }}
+                            Log.e("Amount", "Invalid amount", e);
+                        }
+                    }
                     edtAmount.addTextChangedListener(this);
                 }
             }
         });
-        isLoadingData = true;
+
         loadInitialData();
-        isLoadingData = false;    }
+    }
 
     private void selectCategory(String category) {
         selectedCategory = category;
@@ -242,6 +227,11 @@ public class AddExpenseFragment extends Fragment {
                 String category = args.getString(ARG_CATEGORY, "Ăn uống");
 
                 edtMerchant.setText(merchant);
+                if (!merchant.isEmpty()) {
+                    if(category.equals("Khác")){
+                        category=suggestionEngine.suggestCategory(merchant);
+                    }
+                }
 
                 if (amount > 0) {
                     edtAmount.setText(CurrencyUtils.formatAmount(amount));                }
@@ -287,6 +277,9 @@ public class AddExpenseFragment extends Fragment {
     }
 
     private void saveExpense() {
+        //fix bug
+//        Log.d("test:", "Đã vào saveExpense()");
+//        Toast.makeText(requireContext(),"Đã bấm Lưu",Toast.LENGTH_SHORT).show();
         String amountText = edtAmount.getText().toString().trim();
         String merchant = edtMerchant.getText().toString().trim();
         String note = edtNote.getText().toString().trim();
@@ -297,7 +290,7 @@ public class AddExpenseFragment extends Fragment {
             return;
         }
 
-        if (merchant.trim().isEmpty()) {
+        if (merchant.isEmpty()) {
             edtMerchant.setError("Vui lòng nhập nơi chi tiêu");
             edtMerchant.requestFocus();
             return;
@@ -328,8 +321,8 @@ public class AddExpenseFragment extends Fragment {
         expense.setNote(note);
         expense.setReceiptText(receiptText);
 
+        expense.setSynced(false);
         expenseStore.saveExpense(expense);
-
         // Trigger sync lên Firestore ngay sau khi lưu local
         SyncManager.getInstance(requireContext()).syncSingleExpense(expense);
 
@@ -345,7 +338,7 @@ public class AddExpenseFragment extends Fragment {
         }
 
         expenseStore.deleteExpense(editingExpense.getId());
-        Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show();
+        SyncManager.getInstance(requireContext()).deleteExpenseFromFirestore(editingExpense.getId());        Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show();
         closeScreen();
     }
 
