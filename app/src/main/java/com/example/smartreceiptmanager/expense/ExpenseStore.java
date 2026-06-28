@@ -16,6 +16,7 @@ import java.util.UUID;
 public class ExpenseStore {
     private static final String PREF_NAME = "expense_store";
     private static final String KEY_EXPENSES = "expenses";
+    private static final String KEY_PENDING_DELETED_IDS = "pending_deleted_expense_ids";
 
     private final SharedPreferences preferences;
     private final Context context;
@@ -85,6 +86,7 @@ public class ExpenseStore {
             expenses.add(expense);
         }
 
+        removePendingDelete(expense.getId());
         persist(expenses);
         checkBudget();
     }
@@ -111,13 +113,42 @@ public class ExpenseStore {
         }
 
         List<Expense> expenses = getAllExpenses();
+        boolean shouldSyncDelete = false;
         for (int i = expenses.size() - 1; i >= 0; i--) {
-            if (id.equals(expenses.get(i).getId())) {
+            Expense expense = expenses.get(i);
+            if (id.equals(expense.getId())) {
+                shouldSyncDelete = shouldSyncDelete || expense.isSynced();
                 expenses.remove(i);
             }
         }
 
         persist(expenses);
+
+        if (shouldSyncDelete) {
+            addPendingDelete(id);
+        }
+    }
+
+    public List<String> getPendingDeletedExpenseIds() {
+        List<String> ids = new ArrayList<>();
+        String raw = preferences.getString(KEY_PENDING_DELETED_IDS, "[]");
+
+        try {
+            JSONArray array = new JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                String id = array.optString(i, "");
+                if (!id.trim().isEmpty()) {
+                    ids.add(id);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return ids;
+    }
+
+    public void markDeleteSynced(String id) {
+        removePendingDelete(id);
     }
 
     public double getCurrentMonthTotal() {
@@ -153,6 +184,34 @@ public class ExpenseStore {
             }
         } catch (Exception ignored) {}
         preferences.edit().putString(KEY_EXPENSES, array.toString()).commit();
+    }
+
+    private void addPendingDelete(String id) {
+        List<String> ids = getPendingDeletedExpenseIds();
+        if (!ids.contains(id)) {
+            ids.add(id);
+            persistPendingDeletes(ids);
+        }
+    }
+
+    private void removePendingDelete(String id) {
+        if (id == null) {
+            return;
+        }
+
+        List<String> ids = getPendingDeletedExpenseIds();
+        if (ids.remove(id)) {
+            persistPendingDeletes(ids);
+        }
+    }
+
+    private void persistPendingDeletes(List<String> ids) {
+        JSONArray array = new JSONArray();
+        for (String id : ids) {
+            array.put(id);
+        }
+
+        preferences.edit().putString(KEY_PENDING_DELETED_IDS, array.toString()).commit();
     }
 
     private JSONObject toJson(Expense expense) throws Exception {

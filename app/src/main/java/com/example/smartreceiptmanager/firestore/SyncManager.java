@@ -35,41 +35,46 @@ public class SyncManager {
         this.firestoreRepo = FirestoreRepository.getInstance();
     }
 
-
     public void syncPendingIfOnline() {
         if (!isNetworkAvailable()) {
-            Log.d(TAG, "Không có mạng – bỏ qua sync, sẽ sync sau");
+            Log.d(TAG, "No network, skip sync");
             return;
         }
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
-            Log.d(TAG, "Chưa đăng nhập – không thể sync");
+            Log.d(TAG, "No signed-in user, skip sync");
             return;
         }
 
         String uid = currentUser.getUid();
         ExpenseStore expenseStore = new ExpenseStore(appContext);
         List<Expense> allExpenses = expenseStore.getAllExpenses();
+        List<String> pendingDeletedIds = expenseStore.getPendingDeletedExpenseIds();
 
+        if (!pendingDeletedIds.isEmpty()) {
+            syncPendingDeletes(uid, expenseStore, pendingDeletedIds);
+        }
 
         List<Expense> pendingExpenses = new ArrayList<>();
-        for (Expense e : allExpenses) {
-            if (!e.isSynced()) {
-                pendingExpenses.add(e);
+        for (Expense expense : allExpenses) {
+            if (!expense.isSynced()) {
+                pendingExpenses.add(expense);
             }
         }
 
         if (pendingExpenses.isEmpty()) {
-            Log.d(TAG, "Không có expense nào cần sync");
+            Log.d(TAG, pendingDeletedIds.isEmpty()
+                    ? "No expenses need sync"
+                    : "Only pending deletes need sync");
             return;
         }
 
-        Log.d(TAG, "Bắt đầu sync " + pendingExpenses.size() + " expense...");
+        Log.d(TAG, "Start syncing " + pendingExpenses.size() + " expenses");
 
         firestoreRepo.syncPendingExpenses(uid, pendingExpenses,
                 (successCount, failCount) -> {
-                    Log.d(TAG, "Sync xong: " + successCount + " thành công, " + failCount + " thất bại");
+                    Log.d(TAG, "Sync completed: " + successCount + " success, " + failCount + " failed");
 
                     if (successCount > 0) {
                         markSyncedExpenses(expenseStore, pendingExpenses, uid);
@@ -79,7 +84,7 @@ public class SyncManager {
 
     public void syncSingleExpense(Expense expense) {
         if (!isNetworkAvailable()) {
-            Log.d(TAG, "Không có mạng – expense " + expense.getId() + " sẽ được sync sau");
+            Log.d(TAG, "No network, expense will sync later: " + expense.getId());
             return;
         }
 
@@ -90,19 +95,18 @@ public class SyncManager {
         firestoreRepo.syncExpense(uid, expense, new FirestoreRepository.OnExpenseSyncedCallback() {
             @Override
             public void onSynced(String expenseId) {
-                // Cập nhật isSynced = true trong local storage
                 ExpenseStore store = new ExpenseStore(appContext);
                 Expense local = store.getExpenseById(expenseId);
                 if (local != null) {
                     local.setSynced(true);
                     store.saveExpense(local);
                 }
-                Log.d(TAG, "Sync single expense thành công: " + expenseId);
+                Log.d(TAG, "Single expense synced: " + expenseId);
             }
 
             @Override
             public void onFailure(String error) {
-                Log.e(TAG, "Sync single expense thất bại: " + error);
+                Log.e(TAG, "Single expense sync failed: " + error);
             }
         });
     }
@@ -114,12 +118,13 @@ public class SyncManager {
         firestoreRepo.deleteExpense(currentUser.getUid(), expenseId, new FirestoreRepository.OnCompleteCallback() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Xóa expense Firestore OK: " + expenseId);
+                new ExpenseStore(appContext).markDeleteSynced(expenseId);
+                Log.d(TAG, "Firestore expense deleted: " + expenseId);
             }
 
             @Override
             public void onFailure(String error) {
-                Log.e(TAG, "Xóa expense Firestore thất bại: " + error);
+                Log.e(TAG, "Firestore expense delete failed: " + error);
             }
         });
     }
@@ -129,7 +134,26 @@ public class SyncManager {
             expense.setSynced(true);
             store.saveExpense(expense);
         }
-        Log.d(TAG, "Đã đánh dấu " + synced.size() + " expense là synced");
+        Log.d(TAG, "Marked " + synced.size() + " expenses as synced");
+    }
+
+    private void syncPendingDeletes(String uid, ExpenseStore store, List<String> pendingDeletedIds) {
+        Log.d(TAG, "Start syncing " + pendingDeletedIds.size() + " pending deletes");
+
+        for (String expenseId : pendingDeletedIds) {
+            firestoreRepo.deleteExpense(uid, expenseId, new FirestoreRepository.OnCompleteCallback() {
+                @Override
+                public void onSuccess() {
+                    store.markDeleteSynced(expenseId);
+                    Log.d(TAG, "Pending delete synced: " + expenseId);
+                }
+
+                @Override
+                public void onFailure(String error) {
+                    Log.e(TAG, "Pending delete sync failed: " + expenseId + " - " + error);
+                }
+            });
+        }
     }
 
     public boolean isNetworkAvailable() {
