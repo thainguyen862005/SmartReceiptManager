@@ -21,16 +21,22 @@ import com.example.smartreceiptmanager.R;
 import com.example.smartreceiptmanager.auth.AuthViewModel;
 import com.example.smartreceiptmanager.expense.Expense;
 import com.example.smartreceiptmanager.expense.ExpenseDetailFragment;
-import com.example.smartreceiptmanager.auth.UserProfile;
-import com.example.smartreceiptmanager.expense.ExpenseStore;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
+
+// IMPORT CÁC THƯ VIỆN FIREBASE
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class HomeFragment extends Fragment {
-    private ExpenseStore expenseStore;
     private TextView txtBalance;
     private TextView txtWeekTotal;
     private TextView txtEmptyExpense;
@@ -39,57 +45,50 @@ public class HomeFragment extends Fragment {
     private ImageView imgHeaderAvatar;
     private View cardHeaderAvatar;
 
+    // Các biến lắng nghe Firebase để giải phóng bộ nhớ khi đóng Fragment
+    private DatabaseReference transactionsRef;
+    private DatabaseReference walletRef;
+    private ValueEventListener transactionsListener;
+    private ValueEventListener walletListener;
+
     public HomeFragment() {
         // Required empty public constructor
     }
 
     @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater,
-            ViewGroup container,
-            Bundle savedInstanceState
-    ) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_home, container, false);
     }
 
     @Override
-    public void onViewCreated(
-            @NonNull View view,
-            @Nullable Bundle savedInstanceState
-    ) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
         imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
+        txtBalance = view.findViewById(R.id.txtBalance);
+        txtWeekTotal = view.findViewById(R.id.txtWeekTotal);
+        txtEmptyExpense = view.findViewById(R.id.txtEmptyExpense);
+        layoutExpenseList = view.findViewById(R.id.layoutExpenseList);
 
-        // 2. Khởi tạo AuthViewModel (Sử dụng requireActivity() để dùng chung tầng dữ liệu với Activity)
+        // 1. Quản lý thông tin Avatar người dùng
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
-
         authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
             if (userProfile != null && userProfile.getProfile() != null) {
                 String avatarUrl = userProfile.getProfile().getAvatar_url();
                 if (avatarUrl != null && !avatarUrl.isEmpty() && imgHeaderAvatar != null) {
                     if (avatarUrl.startsWith("http")) {
-                        Glide.with(this)
-                                .load(avatarUrl)
-                                .placeholder(android.R.drawable.sym_def_app_icon)
-                                .circleCrop()
-                                .into(imgHeaderAvatar);
+                        Glide.with(this).load(avatarUrl).placeholder(android.R.drawable.sym_def_app_icon).circleCrop().into(imgHeaderAvatar);
                     } else {
                         try {
                             byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
-                            Glide.with(this)
-                                    .load(bytes)
-                                    .placeholder(android.R.drawable.sym_def_app_icon)
-                                    .circleCrop()
-                                    .into(imgHeaderAvatar);
-                        } catch (Exception ignored) {
-                        }
+                            Glide.with(this).load(bytes).placeholder(android.R.drawable.sym_def_app_icon).circleCrop().into(imgHeaderAvatar);
+                        } catch (Exception ignored) {}
                     }
                 }
             }
         });
 
-        // 4. Bắt sự kiện click vào ô tròn Avatar để mở màn hình Thông tin cá nhân (Profile)
         if (cardHeaderAvatar != null) {
             cardHeaderAvatar.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), ProfileActivity.class);
@@ -97,33 +96,101 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        expenseStore = new ExpenseStore(requireContext());
-        txtBalance = view.findViewById(R.id.txtBalance);
-        txtWeekTotal = view.findViewById(R.id.txtWeekTotal);
-        txtEmptyExpense = view.findViewById(R.id.txtEmptyExpense);
-        layoutExpenseList = view.findViewById(R.id.layoutExpenseList);
-
-        // ĐÃ XÓA KHỐI CODE btnAddExpense TẠI ĐÂY ĐỂ TRÁNH LỖI CRASH ỨNG DỤNG
-
-        // Nút "Xem tất cả" vẫn giữ lại hoạt động bình thường để nhảy sang tab Lịch sử
+        // 2. Chuyển Tab Lịch sử khi nhấn "Xem tất cả"
         view.findViewById(R.id.btnViewAll).setOnClickListener(v -> {
             requireActivity().findViewById(R.id.btnHistory).performClick();
         });
 
-        renderExpenses();
+        // 3. Khởi chạy tiến trình kết nối & đọc dữ liệu từ Firebase
+        setupFirebaseRealtime();
     }
 
-    private void renderExpenses() {
-        List<Expense> savedExpenses = expenseStore.getAllExpenses();
-        List<Expense> expenses = savedExpenses.isEmpty() ? getPreviewExpenses() : savedExpenses;
+    private void setupFirebaseRealtime() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            txtEmptyExpense.setVisibility(View.VISIBLE);
+            txtEmptyExpense.setText("Vui lòng đăng nhập lại");
+            return;
+        }
 
-        txtBalance.setText("12,450,000 đ");
-        txtWeekTotal.setText(CurrencyUtils.formatVnd(savedExpenses.isEmpty() ? 3200000 : expenseStore.getCurrentMonthTotal()));
-        txtEmptyExpense.setVisibility(View.GONE);
+        String uid = currentUser.getUid();
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
 
+        // --- ĐOẠN ĐỌC SỐ DƯ VÍ TỪ FIREBASE ---
+        walletRef = database.getReference("User_Profiles").child("wallets").child(uid).child("wallet_default_01");
+        walletListener = walletRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    Long totalAmount = snapshot.child("total_amount").getValue(Long.class);
+                    if (totalAmount != null) {
+                        txtBalance.setText(CurrencyUtils.formatVnd(totalAmount));
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        // --- ĐOẠN ĐỌC DANH SÁCH GIAO DỊCH TỪ FIREBASE ---
+        transactionsRef = database.getReference("User_Profiles").child("transactions").child(uid);
+        transactionsListener = transactionsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                List<Expense> firebaseExpenses = new ArrayList<>();
+                long totalExpenseThisMonth = 0;
+
+                // Vòng lặp quét qua từng transaction_id
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    String type = snapshot.child("type").getValue(String.class);
+
+                    // Chỉ lấy những giao dịch là khoản chi (expense)
+                    if ("expense".equals(type)) {
+                        String id = snapshot.getKey();
+                        Long amount = snapshot.child("amount").getValue(Long.class);
+                        String note = snapshot.child("note").getValue(String.class);
+                        String categoryName = snapshot.child("category").child("name").getValue(String.class);
+                        Long createdAt = snapshot.child("created_at").getValue(Long.class);
+
+                        long finalAmount = (amount != null) ? amount : 0;
+                        long finalTime = (createdAt != null) ? createdAt : System.currentTimeMillis();
+                        String merchant = (note != null && !note.isEmpty()) ? note : "Chi tiêu không tên";
+
+                        // Ánh xạ về Object Expense (Phù hợp với cấu trúc hàm tạo của bạn)
+                        Expense expense = new Expense(id, merchant, finalAmount, categoryName, finalTime, note, "", false, finalTime, finalTime);
+
+                        // Đẩy các giao dịch mới nhất lên đầu danh sách hiển thị
+                        firebaseExpenses.add(0, expense);
+
+                        // Tính tổng tiền chi tiêu tạm thời
+                        totalExpenseThisMonth += finalAmount;
+                    }
+                }
+
+                // Tiến hành đưa dữ liệu lên UI giao diện
+                renderExpenses(firebaseExpenses, totalExpenseThisMonth, uid);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Toast.makeText(requireContext(), "Lỗi tải Firebase: " + databaseError.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void renderExpenses(List<Expense> expenses, long totalExpense, String uid) {
         layoutExpenseList.removeAllViews();
+        txtWeekTotal.setText(CurrencyUtils.formatVnd(totalExpense));
+
+        if (expenses.isEmpty()) {
+            txtEmptyExpense.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        txtEmptyExpense.setVisibility(View.GONE);
         LayoutInflater inflater = LayoutInflater.from(requireContext());
 
+        // Chỉ hiển thị tối đa 3 giao dịch gần nhất tại trang chủ
         int count = Math.min(expenses.size(), 3);
         for (int i = 0; i < count; i++) {
             Expense expense = expenses.get(i);
@@ -142,10 +209,14 @@ public class HomeFragment extends Fragment {
             txtAmount.setText("-" + CurrencyUtils.formatVnd(expense.getAmount()));
 
             itemView.setOnClickListener(v -> openExpenseDetail(expense.getId()));
+
+            // Đồng bộ hành vi Xóa trực tiếp lên Firebase Realtime Database
             btnDelete.setOnClickListener(v -> {
-                expenseStore.deleteExpense(expense.getId());
-                Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show();
-                renderExpenses();
+                if (transactionsRef != null) {
+                    transactionsRef.child(expense.getId()).removeValue()
+                            .addOnSuccessListener(aVoid -> Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(requireContext(), "Xóa thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                }
             });
 
             layoutExpenseList.addView(itemView);
@@ -166,53 +237,36 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private List<Expense> getPreviewExpenses() {
-        long now = System.currentTimeMillis();
-        List<Expense> expenses = new ArrayList<>();
-        expenses.add(new Expense("preview-1", "Ăn tối ngoài", 450000, "Ăn uống", now, "Hôm nay, 19:30", "", false, now, now));
-        expenses.add(new Expense("preview-2", "Grab Bike", 45000, "Di chuyển", now, "Hôm nay, 08:15", "", false, now, now));
-        expenses.add(new Expense("preview-3", "Siêu thị Mini", 120000, "Mua sắm", now - 86400000, "Hôm qua, 18:00", "", false, now, now));
-        return expenses;
-    }
-
     private String getFriendlyDate(Expense expense) {
         if (expense.getNote() != null && expense.getNote().startsWith("Hôm")) {
             return expense.getNote();
         }
-
         return DateUtils.formatDate(expense.getDate());
     }
 
     private String getCategoryIcon(String category) {
-        if ("Ăn uống".equals(category)) {
-            return "🍴";
-        } else if ("Di chuyển".equals(category)) {
-            return "🚗";
-        } else if ("Mua sắm".equals(category)) {
-            return "🛍";
-        } else if ("Hóa đơn".equals(category)) {
-            return "🧾";
-        }
-
+        if ("Ăn uống".equals(category)) return "🍴";
+        if ("Di chuyển".equals(category)) return "🚗";
+        if ("Mua sắm".equals(category)) return "🛍";
+        if ("Hóa đơn".equals(category)) return "🧾";
         return "💸";
     }
 
     private int getCategoryBackground(String category) {
-        if ("Ăn uống".equals(category)) {
-            return R.drawable.bg_avatar_mint;
-        } else if ("Di chuyển".equals(category)) {
-            return R.drawable.bg_avatar_blue;
-        } else if ("Mua sắm".equals(category)) {
-            return R.drawable.bg_avatar_gray;
-        } else if ("Hóa đơn".equals(category)) {
-            return R.drawable.bg_avatar_gray;
-        }
-
+        if ("Ăn uống".equals(category)) return R.drawable.bg_avatar_mint;
+        if ("Di chuyển".equals(category)) return R.drawable.bg_avatar_blue;
         return R.drawable.bg_avatar_gray;
     }
+
     @Override
-    public void onResume() {
-        super.onResume();
-        renderExpenses();
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Hủy lắng nghe dữ liệu khi thoát fragment để tránh hiện tượng rò rỉ bộ nhớ (Memory Leak)
+        if (transactionsRef != null && transactionsListener != null) {
+            transactionsRef.removeEventListener(transactionsListener);
+        }
+        if (walletRef != null && walletListener != null) {
+            walletRef.removeEventListener(walletListener);
+        }
     }
 }
