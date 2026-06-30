@@ -40,10 +40,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class ExpenseListFragment extends Fragment {
 
@@ -54,7 +52,7 @@ public class ExpenseListFragment extends Fragment {
     private ImageView imgHeaderAvatar;
     private View cardHeaderAvatar;
     private String searchQuery = "";
-    private String selectedMonthKey = "";
+    private int selectedMonth = -1;
     private List<Expense> allExpenses = new ArrayList<>();
 
     @Override
@@ -267,7 +265,7 @@ public class ExpenseListFragment extends Fragment {
     }
 
     private boolean matchesMonth(Expense expense) {
-        return selectedMonthKey.isEmpty() || selectedMonthKey.equals(getMonthKey(expense));
+        return selectedMonth == -1 || selectedMonth == getMonth(expense);
     }
 
     private boolean matchesSearch(Expense expense, String normalizedQuery) {
@@ -291,65 +289,39 @@ public class ExpenseListFragment extends Fragment {
     private void setupMonthFilter(List<Expense> expenses) {
         if (txtMonthFilter == null) return;
 
-        Map<String, String> monthOptions = getMonthOptions(expenses);
-        if (!selectedMonthKey.isEmpty() && !monthOptions.containsKey(selectedMonthKey)) {
-            selectedMonthKey = "";
-        }
-
-        txtMonthFilter.setText(selectedMonthKey.isEmpty()
+        txtMonthFilter.setText(selectedMonth == -1
                 ? "≡  Tất cả tháng"
-                : "≡  " + monthOptions.get(selectedMonthKey));
-        txtMonthFilter.setOnClickListener(v -> showMonthMenu(monthOptions));
+                : "≡  Tháng " + (selectedMonth + 1));
+        txtMonthFilter.setOnClickListener(v -> showMonthMenu());
     }
 
-    private void showMonthMenu(Map<String, String> monthOptions) {
+    private void showMonthMenu() {
         PopupMenu popupMenu = new PopupMenu(requireContext(), txtMonthFilter);
-        Map<Integer, String> itemKeys = new LinkedHashMap<>();
 
         popupMenu.getMenu().add(0, 0, 0, "Tất cả tháng");
-        itemKeys.put(0, "");
-
-        int itemId = 1;
-        for (Map.Entry<String, String> entry : monthOptions.entrySet()) {
-            popupMenu.getMenu().add(0, itemId, itemId, entry.getValue());
-            itemKeys.put(itemId, entry.getKey());
-            itemId++;
+        for (int month = 0; month < 12; month++) {
+            popupMenu.getMenu().add(0, month + 1, month + 1, "Tháng " + (month + 1));
         }
 
         popupMenu.setOnMenuItemClickListener(item -> {
-            String monthKey = itemKeys.get(item.getItemId());
-            selectedMonthKey = monthKey == null ? "" : monthKey;
+            selectedMonth = item.getItemId() == 0 ? -1 : item.getItemId() - 1;
             renderExpenses();
             return true;
         });
         popupMenu.show();
     }
 
-    private Map<String, String> getMonthOptions(List<Expense> expenses) {
-        Map<String, String> monthOptions = new LinkedHashMap<>();
-        for (Expense expense : expenses) {
-            monthOptions.put(getMonthKey(expense), getMonthLabel(expense));
-        }
-        return monthOptions;
-    }
-
-    private String getMonthKey(Expense expense) {
+    private int getMonth(Expense expense) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(expense.getDate());
-        return calendar.get(Calendar.YEAR) + "-" + calendar.get(Calendar.MONTH);
-    }
-
-    private String getMonthLabel(Expense expense) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTimeInMillis(expense.getDate());
-        return "Tháng " + (calendar.get(Calendar.MONTH) + 1) + "/" + calendar.get(Calendar.YEAR);
+        return calendar.get(Calendar.MONTH);
     }
 
     private String getEmptyMessage() {
         if (!searchQuery.isEmpty()) {
             return "Không tìm thấy giao dịch phù hợp.";
         }
-        if (!selectedMonthKey.isEmpty()) {
+        if (selectedMonth != -1) {
             return "Không có giao dịch trong tháng đã chọn.";
         }
         return "Chưa có dữ liệu chi tiêu.";

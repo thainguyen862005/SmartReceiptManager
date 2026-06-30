@@ -117,7 +117,7 @@ public class HomeFragment extends Fragment {
         List<Expense> savedExpenses = expenseStore.getAllExpenses();
         List<Expense> expenses = savedExpenses.isEmpty() ? getPreviewExpenses() : savedExpenses;
 
-        txtBalance.setText("12,450,000 đ");
+        txtBalance.setText(CurrencyUtils.formatVnd(savedExpenses.isEmpty() ? 12450000 : expenseStore.getCurrentMonthTotal()));
         txtWeekTotal.setText(CurrencyUtils.formatVnd(savedExpenses.isEmpty() ? 3200000 : expenseStore.getCurrentMonthTotal()));
         txtEmptyExpense.setVisibility(View.GONE);
 

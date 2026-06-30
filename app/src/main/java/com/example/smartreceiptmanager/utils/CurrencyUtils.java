@@ -1,17 +1,19 @@
 package com.example.smartreceiptmanager.utils;
 
-import java.text.NumberFormat;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
 public class CurrencyUtils {
 
     public static String formatVnd(double amount) {
-        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
-        return formatter.format(amount) + "đ";
+        return formatAmount(amount) + "đ";
     }
 
     public static String formatAmount(double amount) {
-        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("vi", "VN"));
+        symbols.setGroupingSeparator('.');
+        DecimalFormat formatter = new DecimalFormat("#,###", symbols);
         return formatter.format(amount);
     }
 
@@ -25,6 +27,7 @@ public class CurrencyUtils {
                     .replace(".", "")
                     .replace(",", "")
                     .replace("đ", "")
+                    .replace("Đ", "")
                     .replace("VNĐ", "")
                     .replace("vnd", "")
                     .trim();

@@ -21,8 +21,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingHorizontal="22dp"
-                android:paddingTop="16dp">
+                android:paddingHorizontal="30dp"
+                android:paddingTop="24dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -36,7 +36,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Tổng số dư"
+                        android:text="Tổng chi tiêu"
                         android:textColor="@color/mint_green"
                         android:textSize="16sp" />
 
@@ -45,7 +45,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="18dp"
-                        android:text="12,450,000 đ"
+                        android:text="12.450.000đ"
                         android:textColor="@android:color/white"
                         android:textSize="30sp"
                         android:textStyle="bold" />
@@ -54,7 +54,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="18dp"
-                        android:text="↗  +2.4% so với tháng trước"
+                        android:text="↗ Tổng chi trong tháng này"
                         android:textColor="@color/mint_green"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -90,7 +90,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
-                            android:text="3,200,000 đ"
+                            android:text="3.200.000đ"
                             android:textColor="@color/primary_green"
                             android:textSize="20sp"
                             android:textStyle="bold" />
