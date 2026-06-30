@@ -7,26 +7,24 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.example.smartreceiptmanager.firestore.SyncManager; // Giữ nguyên import này nếu bạn có dùng
+import com.example.smartreceiptmanager.firestore.SyncManager;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import android.net.Uri;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.auth.EmailAuthProvider;
 
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * ViewModel xử lý toàn bộ logic Auth: Email/Password, Google, Facebook.
- * Sử dụng Firebase Realtime Database với cấu trúc gốc là "User_Profiles"
- */
 public class AuthViewModel extends AndroidViewModel {
 
     private static final String TAG = "AuthViewModel";
 
     private final FirebaseAuth auth;
-    // Khai báo DatabaseReference thay cho FirestoreRepository
     private final DatabaseReference databaseRef;
 
     private final MutableLiveData<FirebaseUser> userLiveData;
@@ -36,7 +34,6 @@ public class AuthViewModel extends AndroidViewModel {
     public AuthViewModel(Application application) {
         super(application);
         auth = FirebaseAuth.getInstance();
-        // Lấy tham chiếu gốc của Realtime Database
         databaseRef = FirebaseDatabase.getInstance().getReference();
 
         userLiveData = new MutableLiveData<>(auth.getCurrentUser());
@@ -48,9 +45,6 @@ public class AuthViewModel extends AndroidViewModel {
     public LiveData<String>       getErrorLiveData()  { return errorLiveData; }
     public LiveData<Boolean>      getLoadingLiveData(){ return loadingLiveData; }
 
-    // ================================================================
-    // ĐĂNG NHẬP BẰNG EMAIL & PASSWORD
-    // ================================================================
     public void login(String email, String password) {
         loadingLiveData.setValue(true);
         auth.signInWithEmailAndPassword(email, password)
@@ -59,7 +53,6 @@ public class AuthViewModel extends AndroidViewModel {
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
                         userLiveData.setValue(user);
-                        // Chỉ đăng nhập, KHÔNG tạo lại dữ liệu
                         onLoginSuccess(user);
                     } else {
                         String msg = task.getException() != null ? task.getException().getMessage() : "Đăng nhập thất bại";
@@ -68,71 +61,141 @@ public class AuthViewModel extends AndroidViewModel {
                 });
     }
 
-    // ================================================================
-    // ĐĂNG KÝ BẰNG EMAIL & PASSWORD
-    // ================================================================
+
     public void register(String email, String password) {
         loadingLiveData.setValue(true);
         auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
-                    loadingLiveData.setValue(false);
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
-                        userLiveData.setValue(user);
-                        // Đăng ký thành công -> Khởi tạo dữ liệu mặc định
+
                         onRegisterSuccess(user);
                     } else {
+                        loadingLiveData.setValue(false);
                         String msg = task.getException() != null ? task.getException().getMessage() : "Đăng ký thất bại";
                         errorLiveData.setValue(msg);
                     }
                 });
     }
 
-    // ================================================================
-    // ĐĂNG NHẬP BẰNG GOOGLE / FACEBOOK
-    // ================================================================
+
     public void loginWithCredential(AuthCredential credential) {
         loadingLiveData.setValue(true);
         auth.signInWithCredential(credential)
                 .addOnCompleteListener(task -> {
-                    loadingLiveData.setValue(false);
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
-                        userLiveData.setValue(user);
-
-                        // Kiểm tra xem đây là tài khoản mới tạo hay tài khoản cũ
                         boolean isNewUser = task.getResult().getAdditionalUserInfo().isNewUser();
                         if (isNewUser) {
-                            onRegisterSuccess(user); // Tạo dữ liệu nếu là người mới
+                            onRegisterSuccess(user);
                         } else {
-                            onLoginSuccess(user);    // Đăng nhập bình thường nếu là người cũ
+                            loadingLiveData.setValue(false);
+                            userLiveData.setValue(user);
+                            onLoginSuccess(user);
                         }
                     } else {
+                        loadingLiveData.setValue(false);
                         String msg = task.getException() != null ? task.getException().getMessage() : "Xác thực mạng xã hội thất bại";
                         errorLiveData.setValue(msg);
                     }
                 });
     }
 
-    // ================================================================
-    // ĐĂNG XUẤT
-    // ================================================================
     public void logout() {
         auth.signOut();
         userLiveData.setValue(null);
     }
 
-    // ================================================================
-    // LUỒNG 1: XỬ LÝ KHI ĐĂNG KÝ TÀI KHOẢN MỚI
-    // (Tạo đồng thời User, Ví, Danh mục nằm trong node User_Profiles)
-    // ================================================================
+    public void updateAvatar(String newUrl) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                    .setPhotoUri(Uri.parse(newUrl))
+                    .build();
+            user.updateProfile(profileUpdates)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            String uid = user.getUid();
+                            databaseRef.child("User_Profiles/users").child(uid).child("profile").child("avatar_url").setValue(newUrl);
+                            userLiveData.setValue(auth.getCurrentUser());
+                        }
+                    });
+        }
+    }
+
+    public void updateDisplayName(String newName) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                    .setDisplayName(newName)
+                    .build();
+            user.updateProfile(profileUpdates)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            String uid = user.getUid();
+                            databaseRef.child("User_Profiles/users").child(uid).child("profile").child("full_name").setValue(newName);
+                            userLiveData.setValue(auth.getCurrentUser());
+                        }
+                    });
+        }
+    }
+
+    public void changePassword(String oldPassword, String newPassword, OnPasswordChangeListener listener) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null && user.getEmail() != null) {
+            AuthCredential credential = EmailAuthProvider.getCredential(user.getEmail(), oldPassword);
+            user.reauthenticate(credential)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            user.updatePassword(newPassword)
+                                    .addOnCompleteListener(updateTask -> {
+                                        if (updateTask.isSuccessful()) {
+                                            listener.onSuccess();
+                                        } else {
+                                            listener.onFailure(updateTask.getException() != null ? updateTask.getException().getMessage() : "Update password failed");
+                                        }
+                                    });
+                        } else {
+                            listener.onFailure("Incorrect old password");
+                        }
+                    });
+        } else {
+            listener.onFailure("User not logged in");
+        }
+    }
+
+    public interface OnPasswordChangeListener {
+        void onSuccess();
+        void onFailure(String error);
+    }
+
+    public void deleteAccount() {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            String uid = user.getUid();
+            user.delete()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            databaseRef.child("User_Profiles/users").child(uid).removeValue();
+                            databaseRef.child("User_Profiles/wallets").child(uid).removeValue();
+                            databaseRef.child("User_Profiles/categories").child(uid).removeValue();
+                            userLiveData.setValue(null);
+                        } else {
+                            errorLiveData.setValue(task.getException() != null ? task.getException().getMessage() : "Delete account failed");
+                        }
+                    });
+        }
+    }
+
     private void onRegisterSuccess(FirebaseUser user) {
-        if (user == null) return;
+        if (user == null) {
+            loadingLiveData.setValue(false);
+            return;
+        }
         String uid = user.getUid();
         String email = user.getEmail() != null ? user.getEmail() : "";
         String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Người dùng mới";
 
-        // Map khổng lồ để Update nhiều đường dẫn cùng lúc
         Map<String, Object> childUpdates = new HashMap<>();
         long currentTime = System.currentTimeMillis();
 
@@ -158,17 +221,16 @@ public class AuthViewModel extends AndroidViewModel {
         incomeCategory.put("category_type", "income");
         incomeCategory.put("name", "Tiền lương");
 
-        // GẮN VÀO CÁC ĐƯỜNG DẪN CÓ TIỀN TỐ "User_Profiles/"
+        // Đưa vào các đường dẫn bắt đầu bằng "User_Profiles/"
         childUpdates.put("User_Profiles/users/" + uid, userProfileObj);
         childUpdates.put("User_Profiles/wallets/" + uid + "/wallet_default_01", defaultWallet);
         childUpdates.put("User_Profiles/categories/" + uid + "/cate_expense_01", expenseCategory);
         childUpdates.put("User_Profiles/categories/" + uid + "/cate_income_01", incomeCategory);
 
-        // Thực thi đẩy lên Firebase
+        // Đẩy đồng thời lên Firebase
         databaseRef.updateChildren(childUpdates)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Đã khởi tạo dữ liệu mặc định thành công cho UID: " + uid);
-                    // Kích hoạt đồng bộ ngoại tuyến nếu cần
+                    Log.d(TAG, "Khởi tạo dữ liệu mặc định thành công cho UID: " + uid);
                     if (getApplication() != null) {
                         try {
                             SyncManager.getInstance(getApplication()).syncPendingIfOnline();
@@ -176,18 +238,20 @@ public class AuthViewModel extends AndroidViewModel {
                             Log.e(TAG, "SyncManager error: " + e.getMessage());
                         }
                     }
+                    loadingLiveData.setValue(false);
+                    userLiveData.setValue(user);
                 })
-                .addOnFailureListener(e -> Log.e(TAG, "Lỗi tạo dữ liệu: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Lỗi tạo dữ liệu ban đầu: " + e.getMessage());
+                    loadingLiveData.setValue(false);
+                    errorLiveData.setValue("Lỗi thiết lập dữ liệu ban đầu: " + e.getMessage());
+                });
     }
 
-    // ================================================================
-    // LUỒNG 2: XỬ LÝ KHI ĐĂNG NHẬP (TÀI KHOẢN ĐÃ TỒN TẠI)
-    // ================================================================
     private void onLoginSuccess(FirebaseUser user) {
         if (user == null) return;
         Log.d(TAG, "Người dùng cũ đăng nhập thành công: " + user.getUid());
 
-        // Không tạo lại dữ liệu, chỉ đồng bộ
         if (getApplication() != null) {
             try {
                 SyncManager.getInstance(getApplication()).syncPendingIfOnline();
