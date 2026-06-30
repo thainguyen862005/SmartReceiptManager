@@ -20,15 +20,31 @@ import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 
 public class ChartHelper {
-    public static void renderWeekChart(Context context, BarChart barChartWeek, float[] total) {
-        ArrayList<BarEntry> entries = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            entries.add(new BarEntry(i, total[i]));
+    public static void renderDayChart(Context context, BarChart chart,  LinkedHashMap<String,Float> dailyMap) {
+        //k có dữ liệu
+        chart.clear();
+
+        if (dailyMap == null || dailyMap.isEmpty()) {
+            chart.setNoDataText("Không có dữ liệu");
+            chart.invalidate();
+            return;
         }
-        BarDataSet dataSet = new BarDataSet(entries, "Chi tiêu");
+
+        ArrayList<BarEntry> entries = new ArrayList<>();
+        ArrayList<String> labels = new ArrayList<>();
+
+        int index=0;
+        for(Map.Entry<String,Float> entry:dailyMap.entrySet()){
+            entries.add(new BarEntry(index, entry.getValue()));
+            labels.add(entry.getKey());
+            index++;
+        }
+        BarDataSet dataSet = new BarDataSet(entries,"");
 
         dataSet.setColor(ContextCompat.getColor(context, R.color.primary_green));
         dataSet.setValueTextSize(10f);
@@ -36,41 +52,47 @@ public class ChartHelper {
         dataSet.setHighlightEnabled(false);
         BarData data = new BarData(dataSet);
         data.setBarWidth(0.55f);
-        barChartWeek.setFitBars(true);
-        barChartWeek.setData(data);
+        chart.setFitBars(true);
+        chart.setData(data);
 
-        String[] days = {"T-6", "T-5", "T-4", "T-3", "T-2", "Hôm qua", "Hôm nay"};
+        chart.setVisibleXRangeMaximum(10);
+        chart.moveViewToX(0);
 
-        XAxis xAxis = barChartWeek.getXAxis();
-        barChartWeek.getAxisLeft().setAxisMinimum(0f);
-        barChartWeek.getAxisLeft().setDrawGridLines(true);
-        barChartWeek.getAxisLeft().setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
-        barChartWeek.getAxisLeft().setTextSize(10f);
+        XAxis xAxis = chart.getXAxis();
+        chart.getAxisLeft().setAxisMinimum(0f);
+        chart.getAxisLeft().setDrawGridLines(true);
+        chart.getAxisLeft().setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
+        chart.getAxisLeft().setTextSize(10f);
 
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(days));
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
         xAxis.setGranularity(1f);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
         xAxis.setDrawAxisLine(false);
-        xAxis.setLabelCount(7);
+        xAxis.setLabelCount(labels.size(), false);
+        xAxis.setLabelRotationAngle(-30f);
         xAxis.setCenterAxisLabels(false);
+        xAxis.setAvoidFirstLastClipping(true);
         xAxis.setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
         xAxis.setTextSize(11f);
 
-        barChartWeek.getAxisRight().setEnabled(false);
-        barChartWeek.getLegend().setEnabled(false);
-        barChartWeek.getDescription().setEnabled(false);
-        barChartWeek.animateXY(1000, 800);
-        barChartWeek.setScaleEnabled(false);
-        barChartWeek.setPinchZoom(false);
-        barChartWeek.setDoubleTapToZoomEnabled(false);
-        barChartWeek.setDragEnabled(false);
-        barChartWeek.setTouchEnabled(false);
-        barChartWeek.setExtraBottomOffset(8f);
-        barChartWeek.setExtraTopOffset(10f);
-        barChartWeek.setExtraLeftOffset(5f);
-        barChartWeek.setExtraRightOffset(5f);
-        barChartWeek.invalidate();
+        chart.getAxisRight().setEnabled(false);
+        chart.getLegend().setEnabled(false);
+        chart.getDescription().setEnabled(false);
+        chart.animateXY(1000, 800);
+        chart.setScaleEnabled(false);
+        chart.setPinchZoom(false);
+        chart.setDoubleTapToZoomEnabled(false);
+        chart.setTouchEnabled(true);
+        chart.setDragEnabled(true);
+        chart.setScaleEnabled(false);
+        chart.setPinchZoom(false);
+        chart.setDoubleTapToZoomEnabled(false);
+        chart.setExtraBottomOffset(8f);
+        chart.setExtraTopOffset(10f);
+        chart.setExtraLeftOffset(5f);
+        chart.setExtraRightOffset(5f);
+        chart.invalidate();
     }
 //PieChart
     public static void renderPieChart(PieChart pieChart, Context context, float food, float transport, float shopping, float other, double total){

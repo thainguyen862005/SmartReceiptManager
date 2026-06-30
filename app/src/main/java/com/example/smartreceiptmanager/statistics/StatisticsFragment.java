@@ -1,12 +1,17 @@
 package com.example.smartreceiptmanager.statistics;
 
+import android.app.DatePickerDialog;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,11 +23,15 @@ import com.example.smartreceiptmanager.expense.Expense;
 import com.example.smartreceiptmanager.expense.ExpenseStore;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.github.mikephil.charting.charts.BarChart;
@@ -38,15 +47,15 @@ public class StatisticsFragment extends Fragment {
     private BarChart barChartWeek;
     private PieChart pieChart;
     private TextView tabMonth;
-    private TextView tab3Months;
-    private TextView tabYear;
+    private TextView tvFromDate;
+    private TextView tvToDate;
+
+    private long fromDate;
+    private long toDate;
 
     //lưu các tab thống kê
     private static final int FILTER_MONTH = 0;
-    private static final int FILTER_3_MONTHS = 1;
-    private static final int FILTER_YEAR = 2;
 
-    private int currentFilter = FILTER_MONTH;
 
     public StatisticsFragment() {
     }
@@ -62,6 +71,16 @@ public class StatisticsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         expenseStore = new ExpenseStore(requireContext());
+        Calendar monthStart = Calendar.getInstance();
+
+        monthStart.set(Calendar.DAY_OF_MONTH, 1);
+        monthStart.set(Calendar.HOUR_OF_DAY, 0);
+        monthStart.set(Calendar.MINUTE, 0);
+        monthStart.set(Calendar.SECOND, 0);
+        monthStart.set(Calendar.MILLISECOND, 0);
+
+        fromDate = monthStart.getTimeInMillis();
+        toDate = System.currentTimeMillis();
 
         tvFoodPercent = view.findViewById(R.id.tvFoodPercent);
         tvTransportPercent = view.findViewById(R.id.tvTransportPercent);
@@ -73,63 +92,58 @@ public class StatisticsFragment extends Fragment {
 
         //3 tab filter
         tabMonth = view.findViewById(R.id.tabMonth);
-        tab3Months = view.findViewById(R.id.tab3Months);
-        tabYear = view.findViewById(R.id.tabYear);
-
         //add clickListener
         tabMonth.setOnClickListener(v -> {
-            currentFilter = FILTER_MONTH;
+
+            Calendar firstDay  = Calendar.getInstance();
+
+            firstDay .set(Calendar.DAY_OF_MONTH, 1);
+            firstDay .set(Calendar.HOUR_OF_DAY, 0);
+            firstDay .set(Calendar.MINUTE, 0);
+            firstDay .set(Calendar.SECOND, 0);
+            firstDay .set(Calendar.MILLISECOND, 0);
+
+            fromDate = firstDay .getTimeInMillis();
+            toDate = System.currentTimeMillis();
+
+            updateDateText();
             refreshStatistics();
         });
 
-        tab3Months.setOnClickListener(v -> {
-            currentFilter = FILTER_3_MONTHS;
+        tvFromDate = view.findViewById(R.id.tvFromDate);
+        tvFromDate.setOnClickListener(v->{
+            showFromDatePicker();
+        });
+
+        tvToDate = view.findViewById(R.id.tvToDate);
+        tvToDate.setOnClickListener(v->{
+            showToDatePicker();
+        });
+
+        Button btnApply = view.findViewById(R.id.btnApplyFilter);
+        btnApply.setOnClickListener(v -> {
+            if(fromDate > toDate){
+                Toast.makeText(requireContext(), "Ngày bắt đầu phải nhỏ hơn ngày kết thúc", Toast.LENGTH_SHORT).show();
+                return;
+            }
             refreshStatistics();
         });
 
-        tabYear.setOnClickListener(v -> {
-            currentFilter = FILTER_YEAR;
-            refreshStatistics();
-        });
         refreshStatistics();
     }
 
     private void refreshStatistics() {
-        List<Expense> expenses = getFilteredExpenses();
+        List<Expense> expenses = expenseStore.getExpensesBetween(fromDate, toDate);
 
         renderTopCategories(expenses);
         renderCategorySummary(expenses);
         renderPieChart(expenses);
-        renderWeekChart(expenses);
-
+        renderDayChart(expenses);
         updateTabUI();
+        updateDateText();
     }
 
     // lấy data theo tab filter
-    private List<Expense> getFilteredExpenses() {
-        switch (currentFilter) {
-            case FILTER_3_MONTHS: {
-                Calendar start = Calendar.getInstance();
-                start.add(Calendar.MONTH, -2);
-                start.set(Calendar.DAY_OF_MONTH, 1);
-
-                return expenseStore.getExpensesBetween(start.getTimeInMillis(), System.currentTimeMillis());
-            }
-            case FILTER_YEAR: {
-                Calendar start = Calendar.getInstance();
-                start.set(Calendar.MONTH, Calendar.JANUARY);
-                start.set(Calendar.DAY_OF_MONTH, 1);
-                start.set(Calendar.HOUR_OF_DAY, 0);
-                start.set(Calendar.MINUTE, 0);
-                start.set(Calendar.SECOND, 0);
-                start.set(Calendar.MILLISECOND,0);
-
-                return expenseStore.getExpensesBetween(start.getTimeInMillis(), System.currentTimeMillis());
-            }
-            default:
-                return expenseStore.getCurrentMonthExpenses();
-        }
-    }
 
     private void renderTopCategories(List<Expense> expenses) {
         LinearLayout container = requireView().findViewById(R.id.layoutTopCategoriesContainer);
@@ -242,24 +256,27 @@ public class StatisticsFragment extends Fragment {
         tvOtherPercent.setText("● Khác " + (int) (other * 100 / total) + "%");
     }
 
-    private void renderWeekChart(List<Expense> expenses) {
-        float[] total = new float[7];
-        Calendar today = Calendar.getInstance();
-        resetTime(today);
-        for (Expense expense : expenses) {
-            Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(expense.getDate());
-            resetTime(c);
+    private void renderDayChart(List<Expense> expenses) {
+        LinkedHashMap<String, Float> dailyMap = new LinkedHashMap<>();
+        Calendar current = Calendar.getInstance();
+        current.setTimeInMillis(fromDate);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM", Locale.getDefault());
 
-            long diffMillis = today.getTimeInMillis() - c.getTimeInMillis();
-            int diff = (int) (diffMillis / (24 * 60 * 60 * 1000));
-
-            if (diff >= 0 && diff < 7) {
-                total[6 - diff] += expense.getAmount();
-            }
+        // tạo sẵn toàn bộ ngày
+        while (current.getTimeInMillis() <= toDate) {
+            dailyMap.put(sdf.format(current.getTime()), 0f);
+            current.add(Calendar.DAY_OF_MONTH,1);
         }
 
-        ChartHelper.renderWeekChart(requireContext(), barChartWeek, total);
+        // cộng tiền
+        for (Expense expense : expenses){
+            String key = sdf.format(new Date(expense.getDate()));
+            if(dailyMap.containsKey(key)){
+                dailyMap.put(key, dailyMap.get(key)+(float)expense.getAmount());
+            }
+
+        }
+        ChartHelper.renderDayChart(requireContext(), barChartWeek, dailyMap);
     }
 
     private void renderPieChart(List<Expense> expenses) {
@@ -299,38 +316,87 @@ public class StatisticsFragment extends Fragment {
     private void updateTabUI() {
 
         // Reset tất cả tab
-        tabMonth.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-        tab3Months.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-        tabYear.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        tabMonth.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
 
-        tabMonth.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-        tab3Months.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-        tabYear.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabMonth.setTypeface(null, Typeface.BOLD);
 
-        tabMonth.setTypeface(null, android.graphics.Typeface.NORMAL);
-        tab3Months.setTypeface(null, android.graphics.Typeface.NORMAL);
-        tabYear.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabMonth.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
+    }
+    private void updateDateText() {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        tvFromDate.setText(sdf.format(new Date(fromDate)));
+        tvToDate.setText(sdf.format(new Date(toDate)));
+    }
 
-        // Tab đang được chọn
-        switch (currentFilter) {
-            case FILTER_MONTH:
-                tabMonth.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
-                tabMonth.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
-                tabMonth.setTypeface(null, android.graphics.Typeface.BOLD);
-                break;
+    private void showFromDatePicker() {
+        // lấy ngày tháng năm mặc định
+        Calendar currentCalendar = Calendar.getInstance();
+        currentCalendar.setTimeInMillis(fromDate);
 
-            case FILTER_3_MONTHS:
-                tab3Months.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
-                tab3Months.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
-                tab3Months.setTypeface(null, android.graphics.Typeface.BOLD);
-                break;
+        int currentYear = currentCalendar.get(Calendar.YEAR);
+        int currentMonth = currentCalendar.get(Calendar.MONTH);
+        int currentDay = currentCalendar.get(Calendar.DAY_OF_MONTH);
 
-            case FILTER_YEAR:
-                tabYear.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
-                tabYear.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
-                tabYear.setTypeface(null, android.graphics.Typeface.BOLD);
-                break;
-        }
+        // action evet khi người dùng chọn xong
+        DatePickerDialog.OnDateSetListener onDateSetListener = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker view, int selectedYear, int selectedMonth, int selectedDay) {
+                // Khi người dùng bấm "OK", hàm này sẽ được gọi.
+
+                // đtượng Calendar mới để chứa ngày vừa chọn
+                Calendar pickedCalendar = Calendar.getInstance();
+
+                // Cài đặt ngày/tháng/năm vừa chọn. Đặt giờ/phút/giây về 0 để đồng nhất
+                pickedCalendar.set(selectedYear, selectedMonth, selectedDay, 0, 0, 0);
+                pickedCalendar.set(Calendar.MILLISECOND, 0);
+
+                // update lại biến fromDate (dạng mili-s)
+                fromDate = pickedCalendar.getTimeInMillis();
+                updateDateText();
+            }
+        };
+
+        // khởi taạo hợp chọn ngaày
+        DatePickerDialog dialog = new DatePickerDialog(requireContext(), onDateSetListener, currentYear, currentMonth, currentDay);
+
+        //show
+        dialog.show();
+    }
+
+    private void showToDatePicker() {
+        // lấy ngày tháng năm mặc định
+        Calendar currentCalendar = Calendar.getInstance();
+        currentCalendar.setTimeInMillis(toDate);
+
+        int currentYear = currentCalendar.get(Calendar.YEAR);
+        int currentMonth = currentCalendar.get(Calendar.MONTH);
+        int currentDay = currentCalendar.get(Calendar.DAY_OF_MONTH);
+
+        // action evet khi người dùng chọn xong
+        DatePickerDialog.OnDateSetListener onDateSetListener = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker view, int selectedYear, int selectedMonth, int selectedDay) {
+                // Khi người dùng bấm "OK", hàm này sẽ được gọi.
+
+                // đtượng Calendar mới để chứa ngày vừa chọn
+                Calendar pickedCalendar = Calendar.getInstance();
+
+                // Cài đặt ngày/tháng/năm vừa chọn. Đặt giờ/phút/giây về 0 để đồng nhất
+                pickedCalendar.set(selectedYear, selectedMonth, selectedDay, 23, 59, 59);
+
+                pickedCalendar.set(Calendar.MILLISECOND,999);
+
+                // update lại biến fromDate (dạng mili-s)
+                toDate = pickedCalendar.getTimeInMillis();
+                updateDateText();
+            }
+        };
+
+        // khởi taạo hợp chọn ngaày
+        DatePickerDialog dialog = new DatePickerDialog(requireContext(), onDateSetListener, currentYear, currentMonth, currentDay);
+
+        //show
+        dialog.show();
     }
 
     //Statistic tự cập nhật sau khi thêm/sửa/xóa chi tiêu
