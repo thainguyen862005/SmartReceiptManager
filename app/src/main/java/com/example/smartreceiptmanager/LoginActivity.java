@@ -45,6 +45,19 @@ public class LoginActivity extends AppCompatActivity {
 
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
+        try {
+            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(
+                    getPackageName(),
+                    android.content.pm.PackageManager.GET_SIGNATURES);
+            for (android.content.pm.Signature signature : info.signatures) {
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA");
+                md.update(signature.toByteArray());
+                String keyHash = android.util.Base64.encodeToString(md.digest(), android.util.Base64.DEFAULT);
+                android.util.Log.d("KeyHash:", keyHash.trim());
+            }
+        } catch (Exception ignored) {
+        }
+
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
