@@ -166,8 +166,6 @@ public class HomeFragment extends Fragment {
                         totalExpenseThisMonth += finalAmount;
                     }
                 }
-
-                // Tiến hành đưa dữ liệu lên UI giao diện
                 renderExpenses(firebaseExpenses, totalExpenseThisMonth, uid);
             }
 
@@ -190,7 +188,6 @@ public class HomeFragment extends Fragment {
         txtEmptyExpense.setVisibility(View.GONE);
         LayoutInflater inflater = LayoutInflater.from(requireContext());
 
-        // Chỉ hiển thị tối đa 3 giao dịch gần nhất tại trang chủ
         int count = Math.min(expenses.size(), 3);
         for (int i = 0; i < count; i++) {
             Expense expense = expenses.get(i);
@@ -209,8 +206,6 @@ public class HomeFragment extends Fragment {
             txtAmount.setText("-" + CurrencyUtils.formatVnd(expense.getAmount()));
 
             itemView.setOnClickListener(v -> openExpenseDetail(expense.getId()));
-
-            // Đồng bộ hành vi Xóa trực tiếp lên Firebase Realtime Database
             btnDelete.setOnClickListener(v -> {
                 if (transactionsRef != null) {
                     transactionsRef.child(expense.getId()).removeValue()
@@ -261,7 +256,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Hủy lắng nghe dữ liệu khi thoát fragment để tránh hiện tượng rò rỉ bộ nhớ (Memory Leak)
         if (transactionsRef != null && transactionsListener != null) {
             transactionsRef.removeEventListener(transactionsListener);
         }
