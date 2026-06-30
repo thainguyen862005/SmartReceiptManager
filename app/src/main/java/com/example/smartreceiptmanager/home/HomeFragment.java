@@ -21,6 +21,7 @@ import com.example.smartreceiptmanager.R;
 import com.example.smartreceiptmanager.auth.AuthViewModel;
 import com.example.smartreceiptmanager.expense.Expense;
 import com.example.smartreceiptmanager.expense.ExpenseDetailFragment;
+import com.example.smartreceiptmanager.auth.UserProfile;
 import com.example.smartreceiptmanager.expense.ExpenseStore;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
@@ -63,15 +64,27 @@ public class HomeFragment extends Fragment {
         // 2. Khởi tạo AuthViewModel (Sử dụng requireActivity() để dùng chung tầng dữ liệu với Activity)
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
 
-        // 3. Lắng nghe thông tin User để tự động load ảnh đại diện thực tế
-        authViewModel.getUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
-            if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
-                if (imgHeaderAvatar != null) {
-                    Glide.with(this)
-                            .load(firebaseUser.getPhotoUrl())
-                            .placeholder(android.R.drawable.sym_def_app_icon)
-                            .circleCrop()
-                            .into(imgHeaderAvatar);
+        authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
+            if (userProfile != null && userProfile.getProfile() != null) {
+                String avatarUrl = userProfile.getProfile().getAvatar_url();
+                if (avatarUrl != null && !avatarUrl.isEmpty() && imgHeaderAvatar != null) {
+                    if (avatarUrl.startsWith("http")) {
+                        Glide.with(this)
+                                .load(avatarUrl)
+                                .placeholder(android.R.drawable.sym_def_app_icon)
+                                .circleCrop()
+                                .into(imgHeaderAvatar);
+                    } else {
+                        try {
+                            byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
+                            Glide.with(this)
+                                    .load(bytes)
+                                    .placeholder(android.R.drawable.sym_def_app_icon)
+                                    .circleCrop()
+                                    .into(imgHeaderAvatar);
+                        } catch (Exception ignored) {
+                        }
+                    }
                 }
             }
         });

@@ -18,6 +18,9 @@ import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import androidx.lifecycle.ViewModelProvider;
+import com.example.smartreceiptmanager.auth.AuthViewModel;
+
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -60,6 +63,29 @@ public class ExpenseListFragment extends Fragment {
             txtEmpty.setVisibility(View.VISIBLE);
             return;
         }
+        if (imgHeaderAvatar != null) {
+            AuthViewModel authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
+            authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
+                if (userProfile != null && userProfile.getProfile() != null) {
+                    String avatarUrl = userProfile.getProfile().getAvatar_url();
+                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                        if (avatarUrl.startsWith("http")) {
+                            Glide.with(this)
+                                    .load(avatarUrl)
+                                    .placeholder(android.R.drawable.sym_def_app_icon)
+                                    .circleCrop()
+                                    .into(imgHeaderAvatar);
+                        } else {
+                            try {
+                                byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
+                                Glide.with(this)
+                                        .load(bytes)
+                                        .placeholder(android.R.drawable.sym_def_app_icon)
+                                        .circleCrop()
+                                        .into(imgHeaderAvatar);
+                            } catch (Exception ignored) {
+                            }
+                        }
 
         String uid = currentUser.getUid();
         DatabaseReference databaseReference = FirebaseDatabase.getInstance()
