@@ -19,6 +19,8 @@ import com.google.firebase.auth.EmailAuthProvider;
 
 import java.util.HashMap;
 import java.util.Map;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 public class AuthViewModel extends AndroidViewModel {
 
@@ -146,6 +148,27 @@ public class AuthViewModel extends AndroidViewModel {
     public void logout() {
         auth.signOut();
         updateActiveUser(null);
+    }
+
+    public void sendPasswordResetEmail(String email, OnResetPasswordListener listener) {
+        if (email == null || email.isEmpty()) {
+            listener.onFailure("Vui lòng nhập địa chỉ email");
+            return;
+        }
+        auth.sendPasswordResetEmail(email)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        listener.onSuccess();
+                    } else {
+                        String msg = task.getException() != null ? task.getException().getMessage() : "Gửi email thất bại";
+                        listener.onFailure(msg);
+                    }
+                });
+    }
+
+    public interface OnResetPasswordListener {
+        void onSuccess();
+        void onFailure(String error);
     }
 
     public void updateAvatar(String newBase64) {

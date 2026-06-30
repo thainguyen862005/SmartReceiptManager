@@ -82,6 +82,10 @@
             android:name=".ProfileActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".AccountSettingsActivity"
+            android:exported="false" />
+
         <receiver
             android:name=".utils.NotificationReceiver"
             android:exported="false" />

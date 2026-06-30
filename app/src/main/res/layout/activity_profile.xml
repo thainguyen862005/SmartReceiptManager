@@ -10,25 +10,27 @@
         android:layout_height="56dp"
         android:background="?attr/colorSurface"
         android:paddingHorizontal="16dp">
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_back"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            app:tint="?attr/colorOnSurface"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Smart Receipt Manager"
-            android:textColor="?attr/colorSecondary"
+            android:text="Thông tin cá nhân"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="18sp"
             android:textStyle="bold"
+            android:layout_toEndOf="@id/btnBack"
+            android:layout_marginStart="16dp"
             android:layout_centerVertical="true"/>
-        <ImageView
-            android:id="@+id/btnNotifications"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_popup_reminder"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            app:tint="?attr/colorSecondary"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?android:attr/selectableItemBackgroundBorderless"/>
     </RelativeLayout>
 
     <LinearLayout
@@ -38,36 +40,17 @@
         android:gravity="center"
         android:padding="24dp">
 
-        <RelativeLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:clipToPadding="false">
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/imgAvatar"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@android:drawable/sym_def_app_icon"
+            android:scaleType="centerCrop"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            app:shapeAppearanceOverlay="@style/CircleImageView"/>
 
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/imgAvatar"
-                android:layout_width="100dp"
-                android:layout_height="100dp"
-                android:src="@android:drawable/sym_def_app_icon"
-                android:scaleType="centerCrop"
-                app:shapeAppearanceOverlay="@style/CircleImageView"/>
-
-            <com.google.android.material.floatingactionbutton.FloatingActionButton
-                android:id="@+id/btnEditAvatar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignBottom="@id/imgAvatar"
-                android:layout_alignEnd="@id/imgAvatar"
-                android:layout_marginEnd="-8dp"
-                android:layout_marginBottom="-8dp"
-                app:fabSize="mini"
-                android:src="@android:drawable/ic_menu_edit"
-                app:backgroundTint="?attr/colorSecondary"
-                app:tint="?attr/colorOnSecondary"
-                app:elevation="4dp" />
-        </RelativeLayout>
-
-        <!-- Đã bổ sung ID tvName để gán tên động -->
         <TextView
             android:id="@+id/tvName"
             android:layout_width="wrap_content"
@@ -78,7 +61,6 @@
             android:textStyle="bold"
             android:layout_marginTop="12dp"/>
 
-        <!-- Đã bổ sung ID tvEmail để gán email động -->
         <TextView
             android:id="@+id/tvEmail"
             android:layout_width="wrap_content"
@@ -118,22 +100,6 @@
                 android:gravity="center_vertical"
                 android:paddingHorizontal="16dp">
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cài đặt tài khoản" android:textColor="?attr/colorOnSurface" android:textStyle="bold"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <androidx.cardview.widget.CardView
-            android:id="@+id/itemNotificationSettings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="?attr/colorSurface">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="16dp">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cài đặt thông báo" android:textColor="?attr/colorOnSurface" android:textStyle="bold"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
