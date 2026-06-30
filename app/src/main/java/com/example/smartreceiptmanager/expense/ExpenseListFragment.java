@@ -1,9 +1,12 @@
 package com.example.smartreceiptmanager.expense;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -23,11 +26,14 @@ import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ExpenseListFragment extends Fragment {
     private ExpenseStore expenseStore;
     private TextView txtEmpty;
     private LinearLayout layoutAllExpenses;
+    private EditText edtSearchExpense;
+    private String searchQuery = "";
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,6 +47,7 @@ public class ExpenseListFragment extends Fragment {
         expenseStore = new ExpenseStore(requireContext());
         txtEmpty = view.findViewById(R.id.txtEmptyExpenseList);
         layoutAllExpenses = view.findViewById(R.id.layoutAllExpenses);
+        edtSearchExpense = view.findViewById(R.id.edtSearchExpense);
 
         // Đã xóa dòng setOnClickListener của nút btnAddExpenseHistory vì nút đã bị xóa bên XML
 
@@ -65,19 +72,40 @@ public class ExpenseListFragment extends Fragment {
             });
         }
 
+        setupSearch();
         renderExpenses();
+    }
+
+    private void setupSearch() {
+        edtSearchExpense.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchQuery = s == null ? "" : s.toString().trim();
+                renderExpenses();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
     }
 
     private void renderExpenses() {
         List<Expense> savedExpenses = expenseStore.getAllExpenses();
         List<Expense> expenses = savedExpenses.isEmpty() ? getPreviewExpenses() : savedExpenses;
-        txtEmpty.setVisibility(expenses.isEmpty() ? View.VISIBLE : View.GONE);
+        List<Expense> filteredExpenses = filterExpenses(expenses);
+        txtEmpty.setText(searchQuery.isEmpty() ? "Chưa có dữ liệu chi tiêu." : "Không tìm thấy giao dịch phù hợp.");
+        txtEmpty.setVisibility(filteredExpenses.isEmpty() ? View.VISIBLE : View.GONE);
         layoutAllExpenses.removeAllViews();
 
         LayoutInflater inflater = LayoutInflater.from(requireContext());
         String currentGroup = "";
-        for (int index = 0; index < expenses.size(); index++) {
-            Expense expense = expenses.get(index);
+        for (int index = 0; index < filteredExpenses.size(); index++) {
+            Expense expense = filteredExpenses.get(index);
             String group = getGroupTitle(expense, index);
             if (!group.equals(currentGroup)) {
                 currentGroup = group;
@@ -109,6 +137,35 @@ public class ExpenseListFragment extends Fragment {
 
             layoutAllExpenses.addView(itemView);
         }
+    }
+
+    private List<Expense> filterExpenses(List<Expense> expenses) {
+        if (searchQuery.isEmpty()) {
+            return expenses;
+        }
+
+        String normalizedQuery = searchQuery.toLowerCase(Locale.ROOT);
+        List<Expense> filteredExpenses = new ArrayList<>();
+        for (Expense expense : expenses) {
+            if (matchesSearch(expense, normalizedQuery)) {
+                filteredExpenses.add(expense);
+            }
+        }
+        return filteredExpenses;
+    }
+
+    private boolean matchesSearch(Expense expense, String normalizedQuery) {
+        String searchableText = (
+                expense.getMerchantName() + " " +
+                        expense.getCategory() + " " +
+                        expense.getNote() + " " +
+                        expense.getReceiptText() + " " +
+                        DateUtils.formatDate(expense.getDate()) + " " +
+                        CurrencyUtils.formatVnd(expense.getAmount()) + " " +
+                        ((long) expense.getAmount())
+        ).toLowerCase(Locale.ROOT);
+
+        return searchableText.contains(normalizedQuery);
     }
 
     private TextView createGroupHeader(String title) {
