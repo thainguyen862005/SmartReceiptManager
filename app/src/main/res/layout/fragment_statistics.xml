@@ -106,15 +106,26 @@
                         android:gravity="center"
                         android:orientation="horizontal">
 
+<!--                        <TextView-->
+<!--                            android:layout_width="140dp"-->
+<!--                            android:layout_height="140dp"-->
+<!--                            android:background="@drawable/bg_chart_circle_placeholder"-->
+<!--                            android:gravity="center"-->
+<!--                            android:text="Tổng\n12.5M"-->
+<!--                            android:textColor="@color/primary_green"-->
+<!--                            android:textSize="18sp"-->
+<!--                            android:textStyle="bold" />-->
+
                         <TextView
+                            android:id="@+id/tvTotalExpense"
                             android:layout_width="140dp"
                             android:layout_height="140dp"
                             android:background="@drawable/bg_chart_circle_placeholder"
                             android:gravity="center"
-                            android:text="Tổng\n12.5M"
+                            android:text="Tổng"
                             android:textColor="@color/primary_green"
                             android:textSize="18sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"/>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -124,6 +135,7 @@
                             android:orientation="vertical">
 
                             <TextView
+                                android:id="@+id/tvFoodPercent"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="●  Ăn uống    40%"
@@ -131,6 +143,7 @@
                                 android:textSize="14sp" />
 
                             <TextView
+                                android:id="@+id/tvTransportPercent"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="10dp"
@@ -139,6 +152,7 @@
                                 android:textSize="14sp" />
 
                             <TextView
+                                android:id="@+id/tvShoppingPercent"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="10dp"
@@ -147,6 +161,7 @@
                                 android:textSize="14sp" />
 
                             <TextView
+                                android:id="@+id/tvOtherPercent"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="10dp"
@@ -179,56 +194,12 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
-                    <LinearLayout
+                    <com.github.mikephil.charting.charts.BarChart
+                        android:id="@+id/barChartWeek"
                         android:layout_width="match_parent"
-                        android:layout_height="150dp"
-                        android:layout_marginTop="16dp"
-                        android:gravity="bottom"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="8dp">
+                        android:layout_height="220dp"
+                        android:layout_marginTop="16dp"/>
 
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="52dp"
-                            android:layout_marginHorizontal="5dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_bar_light" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="86dp"
-                            android:layout_marginHorizontal="5dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_bar_light" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="68dp"
-                            android:layout_marginHorizontal="5dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_bar_light" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="112dp"
-                            android:layout_marginHorizontal="5dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_bar_active" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="74dp"
-                            android:layout_marginHorizontal="5dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_bar_light" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="96dp"
-                            android:layout_marginHorizontal="5dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_bar_light" />
-                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

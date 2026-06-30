@@ -17,13 +17,30 @@ import com.example.smartreceiptmanager.expense.Expense;
 import com.example.smartreceiptmanager.expense.ExpenseStore;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+
 public class StatisticsFragment extends Fragment {
 
     private ExpenseStore expenseStore;
+    private TextView tvTotalExpense;
+    private TextView tvFoodPercent;
+    private TextView tvTransportPercent;
+    private TextView tvShoppingPercent;
+    private TextView tvOtherPercent;
+    private BarChart barChartWeek;
+
     public StatisticsFragment() {
     }
 
@@ -38,7 +55,18 @@ public class StatisticsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         expenseStore = new ExpenseStore(requireContext());
+
+        tvTotalExpense = view.findViewById(R.id.tvTotalExpense);
+        tvFoodPercent = view.findViewById(R.id.tvFoodPercent);
+        tvTransportPercent = view.findViewById(R.id.tvTransportPercent);
+        tvShoppingPercent = view.findViewById(R.id.tvShoppingPercent);
+        tvOtherPercent = view.findViewById(R.id.tvOtherPercent);
+
+        barChartWeek = view.findViewById(R.id.barChartWeek);
+
         renderTopCategories();
+        renderCategorySummary();
+        renderWeekChart();
     }
 
     private void renderTopCategories() {
@@ -66,10 +94,14 @@ public class StatisticsFragment extends Fragment {
                 countMap.put(category, countMap.get(category) + 1);
             }
         }
-        for (String category : amountMap.keySet()) {
-            double amount = amountMap.get(category);
+        List<Map.Entry<String, Double>> categoryList = new ArrayList<>(amountMap.entrySet());
+        Collections.sort(categoryList, (o1, o2) -> Double.compare(o2.getValue(), o1.getValue()));
+
+        for (Map.Entry<String, Double> entry : categoryList) {
+            String category = entry.getKey();
+            double amount = entry.getValue();
             int count = countMap.get(category);
-            int progress = (int) ((amount / totalAmount) * 100);
+            int progress = (int) (amount * 100 / totalAmount);
 
             addTopCategory(container, getCategoryIcon(category), category, count + " giao dịch", CurrencyUtils.formatVnd(amount), progress);
         }
@@ -106,5 +138,94 @@ public class StatisticsFragment extends Fragment {
         progressBar.setProgress(progress);
 
         container.addView(item);
+    }
+
+    private void renderCategorySummary() {
+        List<Expense> expenses = expenseStore.getAllExpenses();
+        double total = 0;
+        double food = 0;
+        double transport = 0;
+        double shopping = 0;
+        double other = 0;
+
+        for (Expense expense : expenses) {
+            total += expense.getAmount();
+            switch (expense.getCategory()) {
+                case "Ăn uống":
+                    food += expense.getAmount();
+                    break;
+                case "Di chuyển":
+                    transport += expense.getAmount();
+                    break;
+                case "Mua sắm":
+                    shopping += expense.getAmount();
+                    break;
+                default:
+                    other += expense.getAmount();
+            }
+        }
+        tvTotalExpense.setText("Tổng\n" + CurrencyUtils.formatVnd(total));
+        if (total == 0) {
+            tvFoodPercent.setText("● Ăn uống 0%");
+            tvTransportPercent.setText("● Di chuyển 0%");
+            tvShoppingPercent.setText("● Mua sắm 0%");
+            tvOtherPercent.setText("● Khác 0%");
+            return;
+        }
+
+        tvFoodPercent.setText("● Ăn uống " + (int) (food * 100 / total) + "%");
+        tvTransportPercent.setText("● Di chuyển " + (int) (transport * 100 / total) + "%");
+        tvShoppingPercent.setText("● Mua sắm " + (int) (shopping * 100 / total) + "%");
+        tvOtherPercent.setText("● Khác " + (int) (other * 100 / total) + "%");
+    }
+
+    private void renderWeekChart() {
+        List<Expense> expenses = expenseStore.getAllExpenses();
+        float[] total = new float[7];
+        Calendar today = Calendar.getInstance();
+        for (Expense expense : expenses) {
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(expense.getDate());
+            int diff = (int) ((today.getTimeInMillis() - c.getTimeInMillis()) / (1000 * 60 * 60 * 24));
+
+            if (diff >= 0 && diff < 7) {
+                total[6 - diff] += expense.getAmount();
+            }
+        }
+
+        ArrayList<BarEntry> entries = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            entries.add(new BarEntry(i, total[i]));
+        }
+
+        BarDataSet dataSet = new BarDataSet(entries, "Chi tiêu");
+        dataSet.setColor(getResources().getColor(R.color.primary_green));
+        dataSet.setValueTextSize(10f);
+        BarData data = new BarData(dataSet);
+        data.setBarWidth(0.55f);
+
+        barChartWeek.setData(data);
+
+        String[] days = {"T-6", "T-5", "T-4", "T-3", "T-2", "Hôm qua", "Hôm nay"};
+
+        XAxis xAxis = barChartWeek.getXAxis();
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(days));
+        xAxis.setGranularity(1f);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+
+        barChartWeek.getAxisRight().setEnabled(false);
+        barChartWeek.getDescription().setEnabled(false);
+        barChartWeek.getLegend().setEnabled(false);
+        barChartWeek.animateY(800);
+        barChartWeek.invalidate();
+    }
+//Statistic tự cập nhật sau khi thêm/sửa/xóa chi tiêu
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        renderTopCategories();
+        renderCategorySummary();
+        renderWeekChart();
     }
 }
