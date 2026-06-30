@@ -8,9 +8,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ExpenseStore {
@@ -182,7 +185,8 @@ public class ExpenseStore {
             for (Expense expense : expenses) {
                 array.put(toJson(expense));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         preferences.edit().putString(KEY_EXPENSES, array.toString()).commit();
     }
 
@@ -245,16 +249,17 @@ public class ExpenseStore {
     }
 
     //tránh lưu trùng 2 lần
-    public boolean isDuplicate(String merchant,double amount,long date){
+    public boolean isDuplicate(String merchant, double amount, long date) {
         merchant = merchant.trim();
-        for(Expense e:getAllExpenses()){
-            String oldMerchant = e.getMerchantName()==null ? "" : e.getMerchantName().trim();
-            if(oldMerchant.equalsIgnoreCase(merchant) && Math.abs(e.getAmount()-amount)<0.01 && sameDay(e.getDate(),date)){
+        for (Expense e : getAllExpenses()) {
+            String oldMerchant = e.getMerchantName() == null ? "" : e.getMerchantName().trim();
+            if (oldMerchant.equalsIgnoreCase(merchant) && Math.abs(e.getAmount() - amount) < 0.01 && sameDay(e.getDate(), date)) {
                 return true;
             }
         }
         return false;
     }
+
     private boolean sameDay(long first, long second) {
         java.util.Calendar c1 = java.util.Calendar.getInstance();
         java.util.Calendar c2 = java.util.Calendar.getInstance();
@@ -262,5 +267,120 @@ public class ExpenseStore {
         c2.setTimeInMillis(second);
         return c1.get(java.util.Calendar.YEAR) == c2.get(java.util.Calendar.YEAR)
                 && c1.get(java.util.Calendar.DAY_OF_YEAR) == c2.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+
+    // Lấy danh sách chi tiêu theo khoảng thời gian
+    public List<Expense> getExpensesBetween(long start, long end) {
+        List<Expense> result = new ArrayList<>();
+        for (Expense expense : getAllExpenses()) {
+            boolean isAfterStart = expense.getDate() >= start;
+            boolean isBeforeEnd = expense.getDate() <= end;
+
+            if (isAfterStart && isBeforeEnd) {
+                result.add(expense);
+            }
+        }
+
+        return result;
+    }
+
+    //Tính tổng tiền
+    public double getTotalAmount(long start, long end) {
+        double total = 0;
+        for (Expense expense : getExpensesBetween(start, end)) {
+            total += expense.getAmount();
+        }
+        return total;
+    }
+
+    // Tổng tiền tuừng danh mục
+    public Map<String, Double> getCategoryTotals(long start, long end) {
+        Map<String, Double> result = new LinkedHashMap<>();
+
+        for (Expense expense : getExpensesBetween(start, end)) {
+            String category = expense.getCategory();
+            double amount = expense.getAmount();
+
+            // Kiểm tra xem danh mục này đã từng được thêm vào Map chưa
+            if (result.containsKey(category)) {
+                // Nếu đã có=> lấy số tiền cũ ra + số tiền mới
+                double oldAmount = result.get(category);
+                result.put(category, oldAmount + amount);
+            } else {
+                // Nếu chưa có => thêm mới danh mục vào Map với số tiền hiện tại
+                result.put(category, amount);
+            }
+        }
+
+        return result;
+    }
+
+    //dếm số giao dịch mỗi danh mục
+    public Map<String, Integer> getCategoryCounts(long start, long end) {
+        Map<String, Integer> result = new LinkedHashMap<>();
+
+        for (Expense expense : getExpensesBetween(start, end)) {
+            String category = expense.getCategory();
+
+            // Nếu danh mục đã có trong Map, ta lấy số đếm hiện tại + 1
+            if (result.containsKey(category)) {
+                int currentCount = result.get(category);
+                result.put(category, currentCount + 1);
+            } else {
+                // Nếu đây là mới ghi nhận số lượng là 1
+                result.put(category, 1);
+            }
+        }
+        return result;
+    }
+
+    //chi tiêu ừng ngày
+    public Map<Integer, Double> getDailyTotals(long start, long end) {
+        Map<Integer, Double> result = new LinkedHashMap<>();
+
+        for (Expense expense : getExpensesBetween(start, end)) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(expense.getDate());
+
+            int day = calendar.get(Calendar.DAY_OF_MONTH);
+            double old = result.containsKey(day) ? result.get(day) : 0;
+            result.put(day, old + expense.getAmount());
+        }
+
+        return result;
+    }
+
+    //Tổng tiền năm hiện tại
+    public double getCurrentYearTotal() {
+        //Lấy năm hiện tại
+        Calendar now = Calendar.getInstance();
+        int currentYear = now.get(Calendar.YEAR);
+        double total = 0;
+        // Khởi tạo Calendar kiểm tra một lần duy nhất ở ngoài vòng lặp
+        Calendar expenseCalendar = Calendar.getInstance();
+
+        for (Expense expense : getAllExpenses()) {
+            // Tái sử dụng expenseCalendar, chỉ thay đổi thời gian bên trong nó
+            expenseCalendar.setTimeInMillis(expense.getDate());
+
+            //So sánh và cộng dồn
+            if (expenseCalendar.get(Calendar.YEAR) == currentYear) {
+                total += expense.getAmount();
+            }
+        }
+
+        return total;
+    }
+
+    //tỏng tiền 3 tháng gần nhất
+    public double getLast3MonthsTotal() {
+        Calendar start = Calendar.getInstance();
+        start.add(Calendar.MONTH, -2);
+        start.set(Calendar.DAY_OF_MONTH, 1);
+
+        long from = start.getTimeInMillis();
+        long to = System.currentTimeMillis();
+
+        return getTotalAmount(from, to);
     }
 }
