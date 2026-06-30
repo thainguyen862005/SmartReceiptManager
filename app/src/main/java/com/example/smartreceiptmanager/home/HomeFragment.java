@@ -210,4 +210,9 @@ public class HomeFragment extends Fragment {
 
         return R.drawable.bg_avatar_gray;
     }
+    @Override
+    public void onResume() {
+        super.onResume();
+        renderExpenses();
+    }
 }

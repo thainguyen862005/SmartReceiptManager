@@ -9,14 +9,14 @@ public class Expense {
     private String note;
     private String receiptText;
     private boolean synced;
+
     private long createdAt;
     private long updatedAt;
 
     public Expense() {
     }
 
-    public Expense(String id, String merchantName, double amount, String category, long date,
-                   String note, String receiptText, boolean synced, long createdAt, long updatedAt) {
+    public Expense(String id, String merchantName, double amount, String category, long date, String note, String receiptText, boolean synced, long createdAt, long updatedAt) {
         this.id = id;
         this.merchantName = merchantName;
         this.amount = amount;
@@ -38,9 +38,8 @@ public class Expense {
     }
 
     public String getMerchantName() {
-        return merchantName;
+        return merchantName == null ? "" : merchantName;
     }
-
     public void setMerchantName(String merchantName) {
         this.merchantName = merchantName;
     }
@@ -54,9 +53,8 @@ public class Expense {
     }
 
     public String getCategory() {
-        return category;
+        return category == null ? "" : category;
     }
-
     public void setCategory(String category) {
         this.category = category;
     }
@@ -70,17 +68,15 @@ public class Expense {
     }
 
     public String getNote() {
-        return note;
+        return note == null ? "" : note;
     }
-
     public void setNote(String note) {
         this.note = note;
     }
 
     public String getReceiptText() {
-        return receiptText;
+        return receiptText == null ? "" : receiptText;
     }
-
     public void setReceiptText(String receiptText) {
         this.receiptText = receiptText;
     }
@@ -107,5 +103,10 @@ public class Expense {
 
     public void setUpdatedAt(long updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "Expense{" + "id='" + id + '\'' + ", merchant='" + merchantName + '\'' + ", amount=" + amount + ", category='" + category + '\'' + ", date=" + date + ", synced=" + synced + '}';
     }
 }
