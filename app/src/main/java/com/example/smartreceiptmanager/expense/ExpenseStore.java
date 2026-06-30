@@ -383,4 +383,21 @@ public class ExpenseStore {
 
         return getTotalAmount(from, to);
     }
+
+    public List<Expense> getCurrentMonthExpenses() {
+        List<Expense> result = new ArrayList<>();
+        Calendar now = Calendar.getInstance();
+        int month = now.get(Calendar.MONTH);
+        int year = now.get(Calendar.YEAR);
+
+        for (Expense expense : getAllExpenses()) {
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(expense.getDate());
+
+            if (c.get(Calendar.MONTH) == month && c.get(Calendar.YEAR) == year) {
+                result.add(expense);
+            }
+        }
+        return result;
+    }
 }

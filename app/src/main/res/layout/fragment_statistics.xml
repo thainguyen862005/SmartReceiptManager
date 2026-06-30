@@ -106,26 +106,11 @@
                         android:gravity="center"
                         android:orientation="horizontal">
 
-<!--                        <TextView-->
-<!--                            android:layout_width="140dp"-->
-<!--                            android:layout_height="140dp"-->
-<!--                            android:background="@drawable/bg_chart_circle_placeholder"-->
-<!--                            android:gravity="center"-->
-<!--                            android:text="Tổng\n12.5M"-->
-<!--                            android:textColor="@color/primary_green"-->
-<!--                            android:textSize="18sp"-->
-<!--                            android:textStyle="bold" />-->
 
-                        <TextView
-                            android:id="@+id/tvTotalExpense"
-                            android:layout_width="140dp"
-                            android:layout_height="140dp"
-                            android:background="@drawable/bg_chart_circle_placeholder"
-                            android:gravity="center"
-                            android:text="Tổng"
-                            android:textColor="@color/primary_green"
-                            android:textSize="18sp"
-                            android:textStyle="bold"/>
+                        <com.github.mikephil.charting.charts.PieChart
+                            android:id="@+id/pieChart"
+                            android:layout_width="180dp"
+                            android:layout_height="180dp"/>
 
                         <LinearLayout
                             android:layout_width="0dp"
