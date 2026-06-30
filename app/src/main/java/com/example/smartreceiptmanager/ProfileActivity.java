@@ -10,8 +10,6 @@ import com.example.smartreceiptmanager.utils.ThemeHelper;
 import com.example.smartreceiptmanager.auth.AuthViewModel;
 import com.example.smartreceiptmanager.auth.UserProfile;
 import android.widget.Toast;
-import android.widget.EditText;
-import androidx.appcompat.app.AlertDialog;
 import android.net.Uri;
 
 public class ProfileActivity extends AppCompatActivity {
@@ -96,6 +94,8 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
+        binding.btnBack.setOnClickListener(v -> finish());
+
         binding.itemTheme.setOnClickListener(v -> {
             int current = ThemeHelper.getSavedTheme(this);
             int next = (current + 1) % 3;
@@ -108,25 +108,8 @@ public class ProfileActivity extends AppCompatActivity {
         binding.imgAvatar.setOnClickListener(v -> pickImageLauncher.launch("image/*"));
 
         binding.itemAccountSettings.setOnClickListener(v -> {
-            String[] options;
-            if (isSocialLogin()) {
-                options = new String[]{"Cập nhật tên hiển thị", "Xóa tài khoản"};
-            } else {
-                options = new String[]{"Cập nhật tên hiển thị", "Đổi mật khẩu", "Xóa tài khoản"};
-            }
-            new AlertDialog.Builder(this)
-                    .setTitle("Cài đặt tài khoản")
-                    .setItems(options, (dialog, which) -> {
-                        String selected = options[which];
-                        if ("Cập nhật tên hiển thị".equals(selected)) {
-                            showUpdateNameDialog();
-                        } else if ("Đổi mật khẩu".equals(selected)) {
-                            showResetPasswordDialog();
-                        } else if ("Xóa tài khoản".equals(selected)) {
-                            showDeleteAccountDialog();
-                        }
-                    })
-                    .show();
+            Intent intent = new Intent(ProfileActivity.this, AccountSettingsActivity.class);
+            startActivity(intent);
         });
 
         authViewModel.getUserLiveData().observe(this, firebaseUser -> {
@@ -161,92 +144,5 @@ public class ProfileActivity extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-    }
-
-    private void showUpdateNameDialog() {
-        EditText input = new EditText(this);
-        input.setText(binding.tvName.getText().toString());
-        new AlertDialog.Builder(this)
-                .setTitle("Cập nhật tên hiển thị")
-                .setView(input)
-                .setPositiveButton("Lưu", (d, w) -> {
-                    String name = input.getText().toString().trim();
-                    if (!name.isEmpty()) {
-                        authViewModel.updateDisplayName(name);
-                    }
-                })
-                .setNegativeButton("Hủy", null)
-                .show();
-    }
-
-    private void showResetPasswordDialog() {
-        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
-        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-        layout.setPadding(50, 40, 50, 10);
-
-        EditText oldPasswordInput = new EditText(this);
-        oldPasswordInput.setHint("Mật khẩu hiện tại");
-        oldPasswordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        layout.addView(oldPasswordInput);
-
-        EditText newPasswordInput = new EditText(this);
-        newPasswordInput.setHint("Mật khẩu mới");
-        newPasswordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        layout.addView(newPasswordInput);
-
-        EditText confirmPasswordInput = new EditText(this);
-        confirmPasswordInput.setHint("Xác nhận mật khẩu mới");
-        confirmPasswordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        layout.addView(confirmPasswordInput);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Đổi mật khẩu")
-                .setView(layout)
-                .setPositiveButton("Cập nhật", (d, w) -> {
-                    String oldPwd = oldPasswordInput.getText().toString().trim();
-                    String newPwd = newPasswordInput.getText().toString().trim();
-                    String confirmPwd = confirmPasswordInput.getText().toString().trim();
-                    if (!oldPwd.isEmpty() && !newPwd.isEmpty() && !confirmPwd.isEmpty()) {
-                        if (!newPwd.equals(confirmPwd)) {
-                            Toast.makeText(ProfileActivity.this, "Mật khẩu mới không trùng khớp", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        authViewModel.changePassword(oldPwd, newPwd, new AuthViewModel.OnPasswordChangeListener() {
-                            @Override
-                            public void onSuccess() {
-                                Toast.makeText(ProfileActivity.this, "Đã đổi mật khẩu thành công", Toast.LENGTH_SHORT).show();
-                            }
-
-                            @Override
-                            public void onFailure(String error) {
-                                Toast.makeText(ProfileActivity.this, "Lỗi: " + error, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    }
-                })
-                .setNegativeButton("Hủy", null)
-                .show();
-    }
-
-    private void showDeleteAccountDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Xóa tài khoản")
-                .setMessage("Cảnh báo: Hành động này sẽ xóa toàn bộ dữ liệu giao dịch và tài khoản của bạn vĩnh viễn. Bạn có chắc chắn muốn tiếp tục?")
-                .setPositiveButton("Xóa vĩnh viễn", (d, w) -> authViewModel.deleteAccount())
-                .setNegativeButton("Hủy", null)
-                .show();
-    }
-
-    private boolean isSocialLogin() {
-        com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            for (com.google.firebase.auth.UserInfo profile : user.getProviderData()) {
-                String providerId = profile.getProviderId();
-                if ("google.com".equals(providerId) || "facebook.com".equals(providerId)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }
