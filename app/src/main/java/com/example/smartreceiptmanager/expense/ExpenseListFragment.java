@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,19 +37,24 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ExpenseListFragment extends Fragment {
 
     private TextView txtEmpty;
     private LinearLayout layoutAllExpenses;
     private EditText edtSearchExpense;
+    private TextView txtMonthFilter;
     private ImageView imgHeaderAvatar;
     private View cardHeaderAvatar;
     private String searchQuery = "";
+    private String selectedMonthKey = "";
     private List<Expense> allExpenses = new ArrayList<>();
 
     @Override
@@ -63,6 +69,7 @@ public class ExpenseListFragment extends Fragment {
         txtEmpty = view.findViewById(R.id.txtEmptyExpenseList);
         layoutAllExpenses = view.findViewById(R.id.layoutAllExpenses);
         edtSearchExpense = view.findViewById(R.id.edtSearchExpense);
+        txtMonthFilter = view.findViewById(R.id.txtMonthFilter);
         imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
         cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
 
@@ -198,8 +205,9 @@ public class ExpenseListFragment extends Fragment {
     private void renderExpenses() {
         if (txtEmpty == null || layoutAllExpenses == null) return;
 
+        setupMonthFilter(allExpenses);
         List<Expense> expenses = filterExpenses(allExpenses);
-        txtEmpty.setText(searchQuery.isEmpty() ? "Chưa có dữ liệu chi tiêu." : "Không tìm thấy giao dịch phù hợp.");
+        txtEmpty.setText(getEmptyMessage());
         txtEmpty.setVisibility(expenses.isEmpty() ? View.VISIBLE : View.GONE);
         layoutAllExpenses.removeAllViews();
 
@@ -248,21 +256,25 @@ public class ExpenseListFragment extends Fragment {
     }
 
     private List<Expense> filterExpenses(List<Expense> expenses) {
-        if (searchQuery.isEmpty()) {
-            return expenses;
-        }
-
         String normalizedQuery = searchQuery.toLowerCase(Locale.ROOT);
         List<Expense> filteredExpenses = new ArrayList<>();
         for (Expense expense : expenses) {
-            if (matchesSearch(expense, normalizedQuery)) {
+            if (matchesMonth(expense) && matchesSearch(expense, normalizedQuery)) {
                 filteredExpenses.add(expense);
             }
         }
         return filteredExpenses;
     }
 
+    private boolean matchesMonth(Expense expense) {
+        return selectedMonthKey.isEmpty() || selectedMonthKey.equals(getMonthKey(expense));
+    }
+
     private boolean matchesSearch(Expense expense, String normalizedQuery) {
+        if (normalizedQuery.isEmpty()) {
+            return true;
+        }
+
         String searchableText = (
                 expense.getMerchantName() + " " +
                         expense.getCategory() + " " +
@@ -274,6 +286,73 @@ public class ExpenseListFragment extends Fragment {
         ).toLowerCase(Locale.ROOT);
 
         return searchableText.contains(normalizedQuery);
+    }
+
+    private void setupMonthFilter(List<Expense> expenses) {
+        if (txtMonthFilter == null) return;
+
+        Map<String, String> monthOptions = getMonthOptions(expenses);
+        if (!selectedMonthKey.isEmpty() && !monthOptions.containsKey(selectedMonthKey)) {
+            selectedMonthKey = "";
+        }
+
+        txtMonthFilter.setText(selectedMonthKey.isEmpty()
+                ? "≡  Tất cả tháng"
+                : "≡  " + monthOptions.get(selectedMonthKey));
+        txtMonthFilter.setOnClickListener(v -> showMonthMenu(monthOptions));
+    }
+
+    private void showMonthMenu(Map<String, String> monthOptions) {
+        PopupMenu popupMenu = new PopupMenu(requireContext(), txtMonthFilter);
+        Map<Integer, String> itemKeys = new LinkedHashMap<>();
+
+        popupMenu.getMenu().add(0, 0, 0, "Tất cả tháng");
+        itemKeys.put(0, "");
+
+        int itemId = 1;
+        for (Map.Entry<String, String> entry : monthOptions.entrySet()) {
+            popupMenu.getMenu().add(0, itemId, itemId, entry.getValue());
+            itemKeys.put(itemId, entry.getKey());
+            itemId++;
+        }
+
+        popupMenu.setOnMenuItemClickListener(item -> {
+            String monthKey = itemKeys.get(item.getItemId());
+            selectedMonthKey = monthKey == null ? "" : monthKey;
+            renderExpenses();
+            return true;
+        });
+        popupMenu.show();
+    }
+
+    private Map<String, String> getMonthOptions(List<Expense> expenses) {
+        Map<String, String> monthOptions = new LinkedHashMap<>();
+        for (Expense expense : expenses) {
+            monthOptions.put(getMonthKey(expense), getMonthLabel(expense));
+        }
+        return monthOptions;
+    }
+
+    private String getMonthKey(Expense expense) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(expense.getDate());
+        return calendar.get(Calendar.YEAR) + "-" + calendar.get(Calendar.MONTH);
+    }
+
+    private String getMonthLabel(Expense expense) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(expense.getDate());
+        return "Tháng " + (calendar.get(Calendar.MONTH) + 1) + "/" + calendar.get(Calendar.YEAR);
+    }
+
+    private String getEmptyMessage() {
+        if (!searchQuery.isEmpty()) {
+            return "Không tìm thấy giao dịch phù hợp.";
+        }
+        if (!selectedMonthKey.isEmpty()) {
+            return "Không có giao dịch trong tháng đã chọn.";
+        }
+        return "Chưa có dữ liệu chi tiêu.";
     }
 
     private TextView createGroupHeader(String title) {
