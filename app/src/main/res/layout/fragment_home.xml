@@ -97,69 +97,13 @@
                     </LinearLayout>
 
                     <LinearLayout
+                        android:id="@+id/layoutWeekChart"
                         android:layout_width="match_parent"
-                        android:layout_height="88dp"
-                        android:layout_marginTop="20dp"
+                        android:layout_height="96dp"
+                        android:layout_marginTop="12dp"
                         android:gravity="bottom"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="16dp">
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="34dp"
-                            android:layout_marginEnd="2dp"
-                            android:layout_weight="1"
-                            android:background="@color/green_light" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="50dp"
-                            android:layout_marginEnd="2dp"
-                            android:layout_weight="1"
-                            android:background="@color/green_light" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="match_parent"
-                            android:layout_marginEnd="2dp"
-                            android:layout_weight="1"
-                            android:gravity="bottom|center_horizontal"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="T4"
-                                android:textColor="@color/primary_green"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
-
-                            <View
-                                android:layout_width="match_parent"
-                                android:layout_height="58dp"
-                                android:background="@color/primary_green" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="2dp"
-                            android:layout_weight="1"
-                            android:background="@color/green_light" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="18dp"
-                            android:layout_marginEnd="2dp"
-                            android:layout_weight="1"
-                            android:background="@color/border_light" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="18dp"
-                            android:layout_weight="1"
-                            android:background="@color/border_light" />
-                    </LinearLayout>
+                        android:paddingHorizontal="4dp" />
                 </LinearLayout>
 
                 <LinearLayout
