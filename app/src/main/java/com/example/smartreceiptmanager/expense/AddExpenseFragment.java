@@ -20,7 +20,17 @@ import com.example.smartreceiptmanager.firestore.SyncManager;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
 
+// THÊM CÁC IMPORT THƯ VIỆN FIREBASE
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
 
 public class AddExpenseFragment extends Fragment {
     private static final String ARG_EXPENSE_ID = "expense_id";
@@ -273,9 +283,13 @@ public class AddExpenseFragment extends Fragment {
         expense.setNote(note);
         expense.setReceiptText(receiptText);
 
+        // 1. Lưu vào SQLite cục bộ
         expenseStore.saveExpense(expense);
 
-        // Trigger sync lên Firestore ngay sau khi lưu local
+        // 2. TỰ ĐỘNG ĐẨY LÊN FIREBASE REALTIME DATABASE (THEO TỪNG USER RIÊNG BIỆT)
+        saveExpenseToRealtimeDatabase(expense);
+
+        // 3. Trigger sync lên Firestore ngay sau khi lưu local
         SyncManager.getInstance(requireContext()).syncSingleExpense(expense);
 
         String message = editingExpense == null ? "Đã lưu khoản chi" : "Đã cập nhật khoản chi";
@@ -289,9 +303,94 @@ public class AddExpenseFragment extends Fragment {
             return;
         }
 
-        expenseStore.deleteExpense(editingExpense.getId());
+        String idToDelete = editingExpense.getId();
+
+        // 1. Xóa ở cục bộ SQLite
+        expenseStore.deleteExpense(idToDelete);
+
+        // 2. XÓA TRÊN FIREBASE REALTIME DATABASE CỦA USER ĐÓ
+        deleteExpenseFromRealtimeDatabase(idToDelete);
+
         Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show();
         closeScreen();
+    }
+
+    /**
+     * Hàm lấy mã login hiện tại và đẩy dữ liệu lên Firebase
+     */
+    private void saveExpenseToRealtimeDatabase(Expense expense) {
+        // 1. Check tài khoản hiện tại trên Firebase
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (currentUser != null) {
+            // 2. Lấy mã login (UID) của user đang dùng app
+            String uid = currentUser.getUid();
+
+            // 3. Trỏ thẳng vào nhánh: User_Profiles -> transactions -> [Mã login hiện tại]
+            DatabaseReference databaseReference = FirebaseDatabase.getInstance()
+                    .getReference("User_Profiles")
+                    .child("transactions")
+                    .child(uid);
+
+            // 4. Lấy ID giao dịch cũ (nếu đang sửa) hoặc tự tạo ID mới (nếu thêm mới)
+            String transactionId = expense.getId();
+            if (transactionId == null || transactionId.isEmpty()) {
+                transactionId = databaseReference.push().getKey();
+                if (transactionId != null) {
+                    expense.setId(transactionId);
+                }
+            }
+
+            if (transactionId == null) return; // Nếu lỗi không tạo được mã thì dừng
+
+            // Định dạng thời gian
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            String dateStr = sdf.format(new Date(expense.getDate()));
+
+            // Gom dữ liệu để đẩy lên
+            HashMap<String, Object> transactionMap = new HashMap<>();
+            transactionMap.put("amount", expense.getAmount());
+            transactionMap.put("created_at", System.currentTimeMillis());
+            transactionMap.put("note", expense.getNote() != null ? expense.getNote() : "");
+            transactionMap.put("payment_method", "Tiền mặt");
+            transactionMap.put("receipt_image_url", "");
+            transactionMap.put("transaction_date", dateStr);
+            transactionMap.put("type", "expense");
+            transactionMap.put("wallet_id", "wallet_default_01");
+
+            // Danh mục con
+            HashMap<String, String> categoryMap = new HashMap<>();
+            categoryMap.put("id", "cate_expense_" + expense.getCategory().hashCode());
+            categoryMap.put("name", expense.getCategory());
+            transactionMap.put("category", categoryMap);
+
+            // 5. Lưu dữ liệu lên Firebase
+            databaseReference.child(transactionId).setValue(transactionMap);
+
+        } else {
+            // Dự phòng trường hợp lỗi (app bị mất phiên đăng nhập ngầm)
+            Toast.makeText(requireContext(), "Lỗi: Không tìm thấy thông tin đăng nhập!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Hàm lấy mã login hiện tại và xóa giao dịch tương ứng
+     */
+    private void deleteExpenseFromRealtimeDatabase(String transactionId) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (currentUser != null && transactionId != null && !transactionId.isEmpty()) {
+            // Lấy mã login (UID)
+            String uid = currentUser.getUid();
+
+            // Trỏ đúng vào nhánh của mã login hiện tại và xóa
+            FirebaseDatabase.getInstance()
+                    .getReference("User_Profiles")
+                    .child("transactions")
+                    .child(uid)
+                    .child(transactionId)
+                    .removeValue();
+        }
     }
 
     private void closeScreen() {
