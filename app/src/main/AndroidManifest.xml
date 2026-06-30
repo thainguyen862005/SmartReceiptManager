@@ -72,6 +72,7 @@
 
         <activity
             android:name=".MainActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false" />
 
         <activity
@@ -80,6 +81,10 @@
 
         <activity
             android:name=".ProfileActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AccountSettingsActivity"
             android:exported="false" />
 
         <receiver

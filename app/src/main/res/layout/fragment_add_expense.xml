@@ -5,10 +5,11 @@
     android:background="@color/bg_background">
 
     <ScrollView
+            android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
-        android:paddingBottom="108dp">
+        android:paddingBottom="120dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -16,6 +17,7 @@
             android:orientation="vertical"
             android:paddingHorizontal="30dp">
 
+            <!-- Header -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="88dp">
@@ -42,6 +44,7 @@
                     android:textStyle="bold" />
             </RelativeLayout>
 
+            <!-- Số tiền -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -53,53 +56,59 @@
                 android:textStyle="bold" />
 
             <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="86dp"
-            android:layout_marginHorizontal="32dp"
-            android:layout_marginTop="18dp"
-            android:gravity="center"
-            android:orientation="horizontal">
+                android:layout_width="match_parent"
+                android:layout_height="86dp"
+                android:layout_marginHorizontal="32dp"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:orientation="horizontal">
 
                 <TextView
-                android:layout_width="36dp"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="đ"
-                android:textColor="@color/text_main"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                    android:layout_width="36dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="đ"
+                    android:textColor="@color/text_main"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
 
                 <EditText
-                android:id="@+id/edtAmount"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:backgroundTint="@color/primary_green"
-                android:gravity="center"
-                android:hint="0"
-                android:includeFontPadding="false"
-                android:inputType="number"
-                android:maxLines="1"
-                android:paddingHorizontal="0dp"
-                android:singleLine="true"
-                android:textColor="@color/primary_green"
-                android:textColorHint="@color/border_light"
-                android:textSize="36sp"
-                android:textStyle="bold" />
+                    android:id="@+id/edtAmount"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/primary_green"
+                    android:gravity="center"
+                    android:paddingEnd="40dp"
+                    android:hint="0"
+                    android:includeFontPadding="false"
+                    android:inputType="number"
+                    android:maxLines="1"
+                    android:paddingHorizontal="0dp"
+                    android:singleLine="true"
+                    android:textColor="@color/primary_green"
+                    android:textColorHint="@color/border_light"
+                    android:textSize="36sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
+            <!-- Nơi chi tiêu -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nơi chi tiêu"/>
+                android:layout_marginTop="16dp"
+                android:text="Nơi chi tiêu" />
 
             <EditText
                 android:id="@+id/edtMerchant"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_input_figma"
-                android:hint="Ví dụ: Highlands Coffee"/>
+                android:hint="Ví dụ: Highlands Coffee"
+                android:paddingHorizontal="16dp" />
 
+            <!-- Danh mục -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -116,6 +125,7 @@
                 android:orientation="horizontal"
                 android:weightSum="4">
 
+                <!-- Thẻ ăn uống -->
                 <LinearLayout
                     android:id="@+id/cardFood"
                     android:layout_width="0dp"
@@ -148,6 +158,7 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
+                <!-- Thẻ di chuyển -->
                 <LinearLayout
                     android:id="@+id/cardTransport"
                     android:layout_width="0dp"
@@ -179,6 +190,7 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
+                <!-- Thẻ mua sắm -->
                 <LinearLayout
                     android:id="@+id/cardShopping"
                     android:layout_width="0dp"
@@ -210,6 +222,7 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
+                <!-- Thẻ hóa đơn -->
                 <LinearLayout
                     android:id="@+id/cardBill"
                     android:layout_width="0dp"
@@ -241,6 +254,7 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Ngày tháng -->
             <LinearLayout
                 android:id="@+id/layoutDate"
                 android:layout_width="match_parent"
@@ -271,6 +285,7 @@
                     android:textSize="13sp" />
             </LinearLayout>
 
+            <!-- Ghi chú -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="132dp"
@@ -308,6 +323,7 @@
         </LinearLayout>
     </ScrollView>
 
+    <!-- Nút hành động cố định ở dưới cùng -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="94dp"

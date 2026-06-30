@@ -3,9 +3,11 @@ package com.example.smartreceiptmanager;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.EditText;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.smartreceiptmanager.databinding.ActivityLoginBinding;
@@ -43,14 +45,25 @@ public class LoginActivity extends AppCompatActivity {
 
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
-        // 1. Cấu hình Google Sign-In
+        try {
+            android.content.pm.PackageInfo info = getPackageManager().getPackageInfo(
+                    getPackageName(),
+                    android.content.pm.PackageManager.GET_SIGNATURES);
+            for (android.content.pm.Signature signature : info.signatures) {
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA");
+                md.update(signature.toByteArray());
+                String keyHash = android.util.Base64.encodeToString(md.digest(), android.util.Base64.DEFAULT);
+                android.util.Log.d("KeyHash:", keyHash.trim());
+            }
+        } catch (Exception ignored) {
+        }
+
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
-        // 2. Cấu hình Facebook SDK Login Callback
         callbackManager = CallbackManager.Factory.create();
         LoginManager.getInstance().registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
@@ -74,11 +87,9 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        // Nút Đăng nhập bằng Email & Mật khẩu thông thường
         binding.btnLogin.setOnClickListener(v -> {
             String email = binding.edtEmail.getText().toString().trim();
             String password = binding.edtPassword.getText().toString().trim();
-
             if (email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show();
                 return;
@@ -86,42 +97,68 @@ public class LoginActivity extends AppCompatActivity {
             authViewModel.login(email, password);
         });
 
-        // Sự kiện click nút chuyển sang màn hình Đăng ký
-        binding.tvGoToRegister.setOnClickListener(v -> {
-            startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
-        });
+        binding.tvGoToRegister.setOnClickListener(v ->
+                startActivity(new Intent(LoginActivity.this, RegisterActivity.class)));
 
-        // Sự kiện click nút Đăng nhập Google
         binding.btnGoogleLogin.setOnClickListener(v -> {
             Intent signInIntent = mGoogleSignInClient.getSignInIntent();
             googleLauncher.launch(signInIntent);
         });
 
-        // Sự kiện click nút Đăng nhập Facebook
-        binding.btnFacebookLogin.setOnClickListener(v -> {
-            LoginManager.getInstance().logInWithReadPermissions(this, Collections.singletonList("email"));
-        });
+        binding.btnFacebookLogin.setOnClickListener(v ->
+                LoginManager.getInstance().logInWithReadPermissions(this, Collections.singletonList("email")));
 
-        // Nút đổi Theme nhanh (Sáng/Tối)
         binding.btnThemeSelect.setOnClickListener(v -> {
             int current = ThemeHelper.getSavedTheme(this);
             int next = (current + 1) % 3;
             ThemeHelper.saveTheme(this, next);
-            recreate(); // Áp dụng theme ngay lập tức
+            recreate();
         });
+
+        binding.tvForgotPassword.setOnClickListener(v -> showForgotPasswordDialog());
+    }
+
+    private void showForgotPasswordDialog() {
+        EditText input = new EditText(this);
+        input.setHint("Nhập địa chỉ email của bạn");
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+
+        String prefill = binding.edtEmail.getText().toString().trim();
+        if (!prefill.isEmpty()) {
+            input.setText(prefill);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Quên mật khẩu")
+                .setMessage("Nhập email tài khoản của bạn. Chúng tôi sẽ gửi liên kết đặt lại mật khẩu.")
+                .setView(input)
+                .setPositiveButton("Gửi", (d, w) -> {
+                    String email = input.getText().toString().trim();
+                    authViewModel.sendPasswordResetEmail(email, new AuthViewModel.OnResetPasswordListener() {
+                        @Override
+                        public void onSuccess() {
+                            Toast.makeText(LoginActivity.this, "Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.", Toast.LENGTH_LONG).show();
+                        }
+
+                        @Override
+                        public void onFailure(String error) {
+                            Toast.makeText(LoginActivity.this, "Lỗi: " + error, Toast.LENGTH_LONG).show();
+                        }
+                    });
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 
     private void setupObservers() {
-        // Lắng nghe trạng thái đăng nhập từ Firebase
         authViewModel.getUserLiveData().observe(this, firebaseUser -> {
             if (firebaseUser != null) {
                 Toast.makeText(this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
                 startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                finish(); // Đóng LoginActivity để không quay lại được khi bấm nút Back
+                finish();
             }
         });
 
-        // Lắng nghe thông báo lỗi từ hệ thống
         authViewModel.getErrorLiveData().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
@@ -129,7 +166,6 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    // Bộ nhận kết quả trả về từ màn hình đăng nhập của Google
     private final ActivityResultLauncher<Intent> googleLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -148,13 +184,11 @@ public class LoginActivity extends AppCompatActivity {
             }
     );
 
-    // Chuyển đổi Access Token của Facebook thành Credential của Firebase
     private void handleFacebookToken(AccessToken token) {
         AuthCredential credential = FacebookAuthProvider.getCredential(token.getToken());
         authViewModel.loginWithCredential(credential);
     }
 
-    // Hàm chuyển tiếp dữ liệu kết quả Đăng nhập Facebook về cho CallbackManager xử lý
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         callbackManager.onActivityResult(requestCode, resultCode, data);

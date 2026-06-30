@@ -10,6 +10,8 @@
     <color name="border_light">#DDDDDD</color>
     <color name="green_primary">#00693E</color>
     <color name="green_light">#E6F0EB</color>
+    <color name="chart_green_soft">#BFEBD7</color>
+    <color name="chart_gray_soft">#E3E3E3</color>
 
     <color name="bg_background">#F8F9FA</color>
     <color name="bg_surface">#FFFFFF</color>

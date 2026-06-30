@@ -146,8 +146,74 @@ public class AddExpenseFragment extends Fragment {
         });
 
         loadInitialData();
+        setupKeyboardAwareScroll(view);
     }
+    private int lastImeHeight = 0;
 
+    /*
+     * Hàm xử lý để ô nhập (vd: Ghi chú, Nơi chi tiêu) không bị bàn phím
+     * ảo che mất khi người dùng đang gõ.
+     *
+     * Cơ chế hoạt động:
+     * 1. Lắng nghe sự kiện WindowInsets mỗi khi bàn phím mở/đóng.
+     * 2. Tính đúng paddingBottom của ScrollView theo từng trạng thái:
+     *    - Bàn phím đang mở: chỉ cần đệm nhỏ (20dp) + chiều cao bàn phím,
+     *      KHÔNG cộng thêm khoảng đệm 120dp gốc (vì thanh nút "Lưu chi tiêu"
+     *      lúc này đang bị bàn phím che, không cần chừa chỗ cho nó nữa).
+     *    - Bàn phím đóng: dùng lại khoảng đệm gốc 120dp để chừa chỗ
+     *      cho thanh nút cố định ở đáy màn hình.
+     * 3. Khi bàn phím vừa mở lên lần đầu (justOpened = true), tự động
+     *    cuộn ScrollView tới đúng vị trí ô đang được focus, để người
+     *    dùng luôn nhìn thấy chữ mình đang gõ.
+     */
+    private void setupKeyboardAwareScroll(View rootView) {
+        android.widget.ScrollView scrollView = rootView.findViewById(R.id.scrollView);
+         /* Khoảng đệm gốc dành cho thanh nút "Lưu chi tiêu" cố định ở đáy,chỉ áp dụng khi bàn phím đang đóng. */
+        int basePaddingBottom = dpToPx(120);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
+            int imeHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom;
+
+    /* Lấy chiều cao thực tế của bàn phím ảo (đơn vị px).bằng 0 nếu bàn phím đang đóng. */
+            int paddingBottom = imeHeight > 0 ? imeHeight + dpToPx(20) : basePaddingBottom;
+
+            scrollView.setPadding(
+                    scrollView.getPaddingLeft(),
+                    scrollView.getPaddingTop(),
+                    scrollView.getPaddingRight(),
+                    paddingBottom
+            );
+
+            boolean justOpened = imeHeight > 0 && lastImeHeight == 0;
+            lastImeHeight = imeHeight;
+
+            if (justOpened) {
+                View focused = rootView.findFocus();
+                if (focused != null) {
+                    scrollView.post(() -> {
+                        /* Lấy vị trí tuyệt đối của ô đang focus trên màn hình */
+                        int[] loc = new int[2];
+                        focused.getLocationOnScreen(loc);
+                         /* Lấy vị trí tuyệt đối của ScrollView trên màn hình
+                       để tính ra vị trí tương đối của ô nhập bên trong nó */
+                        int[] scrollLoc = new int[2];
+                        scrollView.getLocationOnScreen(scrollLoc);
+                        /* Vị trí Y mục tiêu cần cuộn tới = vị trí ô nhập
+                        (tính từ đỉnh ScrollView) cộng với scroll hiện tại */
+                        int targetY = loc[1] - scrollLoc[1] + scrollView.getScrollY();
+                        scrollView.smoothScrollTo(0, targetY - 8);
+                    });
+                }
+            }
+
+            return insets;
+        });
+
+        rootView.requestApplyInsets();
+    }
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return (int) (dp * density);
+    }
     private void selectCategory(String category) {
         selectedCategory = category;
 
