@@ -183,26 +183,62 @@ public class ScanResultFragment extends Fragment {
 
     // HÀM GHI DỮ LIỆU CUỐI CÙNG LÊN REALTIME DATABASE
     private void luuHoaDonVaoRealtime(String shop, long amount, String date, int catId, String raw, String imageUrl) {
-        Map<String, Object> expense = new HashMap<>();
-        expense.put("shop_name",    shop);
-        expense.put("amount",       amount);
-        expense.put("expense_date", date);
-        expense.put("category_id",  catId);
-        expense.put("note",         raw);
-        expense.put("image_url",    imageUrl); // Lưu chuỗi mã hóa ảnh lên đây
-        expense.put("created_at",   System.currentTimeMillis());
 
-        com.google.firebase.database.DatabaseReference realtimeRef =
-                com.google.firebase.database.FirebaseDatabase.getInstance(dbUrl).getReference("Expense_Transactions");
+        com.google.firebase.auth.FirebaseUser currentUser =
+                com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
 
-        String key = realtimeRef.push().getKey();
+        if (currentUser == null) {
+            resetSaveButtonState();
+            if (isAdded()) {
+                Toast.makeText(requireContext(), "⚠️ Bạn cần đăng nhập để lưu hóa đơn!", Toast.LENGTH_SHORT).show();
+            }
+            return; // dừng lại, không ghi DB nếu chưa đăng nhập
+        }
+        String uid = currentUser.getUid();
+
+        // Tính next_due_date = ngày hóa đơn + 1 tháng (mặc định Monthly)
+        // dành cho hóa đơn tiền điên, tiền thue nhà
+        String nextDueDate = date;
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy", Locale.getDefault());
+            Date parsedDate = sdf.parse(date);
+            if (parsedDate != null) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTime(parsedDate);
+                cal.add(java.util.Calendar.MONTH, 1);
+                nextDueDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.getTime());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        Map<String, Object> recurringTx = new HashMap<>();
+        recurringTx.put("amount",             amount);
+        recurringTx.put("category_id",        String.valueOf(catId));
+        recurringTx.put("frequency",          "Monthly");
+        recurringTx.put("next_due_date",      nextDueDate);
+        recurringTx.put("wallet_id",          "wallet_default_01");
+        recurringTx.put("shop_name",          shop);
+        recurringTx.put("note",               raw);
+        recurringTx.put("receipt_image_url",  imageUrl);
+        recurringTx.put("created_at",         System.currentTimeMillis());
+
+        // Ghi đúng theo cấu trúc: User_Profiles/recurring_transactions/{uid}/{id}
+        com.google.firebase.database.DatabaseReference recurringRef = com.google.firebase.database.FirebaseDatabase
+                .getInstance(dbUrl)
+                .getReference("User_Profiles")
+                .child("recurring_transactions")
+                .child(uid);
+
+        String key = recurringRef.push().getKey();
         if (key != null) {
-            realtimeRef.child(key).setValue(expense)
+            recurringRef.child(key).setValue(recurringTx)
                     .addOnSuccessListener(aVoid -> {
                         if (isAdded()) {
                             resetSaveButtonState();
                             Toast.makeText(requireContext(), "🎉 Đã lưu hóa đơn thành công!", Toast.LENGTH_SHORT).show();
-                            previewBitmap = null; // Giải phóng RAM cho máy
+                            previewBitmap = null;
                             requireActivity().getSupportFragmentManager().popBackStack();
                         }
                     })

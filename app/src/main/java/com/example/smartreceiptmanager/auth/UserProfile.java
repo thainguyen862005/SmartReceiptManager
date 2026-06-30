@@ -1,8 +1,8 @@
 package com.example.smartreceiptmanager.auth;
 
-import java.util.HashMap;
-import java.util.Map;
-
+/**
+ * Model đại diện cho thông tin user lưu trên Realtime Database.
+ */
 public class UserProfile {
     private String email;
     private String phone_number;
@@ -11,6 +11,7 @@ public class UserProfile {
     private long created_at;
     private Profile profile;
 
+    // Constructor rỗng bắt buộc cho Firebase
     public UserProfile() {
         this.profile = new Profile();
     }
@@ -24,6 +25,7 @@ public class UserProfile {
         this.profile = profile != null ? profile : new Profile();
     }
 
+    // Getters and Setters
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
@@ -51,6 +53,7 @@ public class UserProfile {
         private String marital_status;
         private String avatar_url;
 
+        // Constructor rỗng bắt buộc cho Firebase
         public Profile() {}
 
         public Profile(String full_name, String avatar_url) {
@@ -63,6 +66,7 @@ public class UserProfile {
             this.marital_status = "";
         }
 
+        // Getters and Setters
         public String getFull_name() { return full_name; }
         public void setFull_name(String full_name) { this.full_name = full_name; }
 
