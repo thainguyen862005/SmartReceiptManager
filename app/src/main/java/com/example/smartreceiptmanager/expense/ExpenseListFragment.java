@@ -2,12 +2,16 @@ package com.example.smartreceiptmanager.expense;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,6 +37,7 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -42,8 +47,13 @@ public class ExpenseListFragment extends Fragment {
 
     private TextView txtEmpty;
     private LinearLayout layoutAllExpenses;
+    private EditText edtSearchExpense;
+    private TextView txtMonthFilter;
     private ImageView imgHeaderAvatar;
     private View cardHeaderAvatar;
+    private String searchQuery = "";
+    private int selectedMonth = -1;
+    private List<Expense> allExpenses = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -56,6 +66,8 @@ public class ExpenseListFragment extends Fragment {
 
         txtEmpty = view.findViewById(R.id.txtEmptyExpenseList);
         layoutAllExpenses = view.findViewById(R.id.layoutAllExpenses);
+        edtSearchExpense = view.findViewById(R.id.edtSearchExpense);
+        txtMonthFilter = view.findViewById(R.id.txtMonthFilter);
         imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
         cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
 
@@ -66,15 +78,36 @@ public class ExpenseListFragment extends Fragment {
             });
         }
 
-        // Khởi động việc lắng nghe dữ liệu từ Firebase
+        setupSearch();
         loadExpensesFromFirebase();
+    }
+
+    private void setupSearch() {
+        if (edtSearchExpense == null) return;
+
+        edtSearchExpense.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchQuery = s == null ? "" : s.toString().trim();
+                renderExpenses();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
     }
 
     private void loadExpensesFromFirebase() {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
             Toast.makeText(requireContext(), "Vui lòng đăng nhập", Toast.LENGTH_SHORT).show();
-            txtEmpty.setVisibility(View.VISIBLE);
+            allExpenses = new ArrayList<>();
+            renderExpenses();
             return;
         }
 
@@ -112,15 +145,12 @@ public class ExpenseListFragment extends Fragment {
                 .child("transactions")
                 .child(uid);
 
-        // Lắng nghe dữ liệu thời gian thực
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (layoutAllExpenses == null) return;
 
                 List<Expense> expenses = new ArrayList<>();
-
-                // Đọc dữ liệu từ Firebase
                 if (snapshot.exists() && snapshot.hasChildren()) {
                     for (DataSnapshot data : snapshot.getChildren()) {
                         Expense expense = new Expense();
@@ -132,7 +162,6 @@ public class ExpenseListFragment extends Fragment {
                         String note = data.child("note").getValue(String.class);
                         expense.setNote(note != null ? note : "");
 
-                        // Lấy danh mục
                         DataSnapshot categorySnap = data.child("category");
                         String categoryName = "Khác";
                         if (categorySnap.exists()) {
@@ -141,20 +170,17 @@ public class ExpenseListFragment extends Fragment {
                         }
                         expense.setCategory(categoryName);
 
-                        // Tên hiển thị chính (Merchant)
                         if (note != null && !note.trim().isEmpty()) {
                             expense.setMerchantName(note);
                         } else {
                             expense.setMerchantName(categoryName);
                         }
 
-                        // Phân loại Thu/Chi dựa vào type
                         String type = data.child("type").getValue(String.class);
                         if ("income".equals(type)) {
-                            expense.setCategory("Thu nhập"); // Gắn tạm để UI xử lý màu xanh
+                            expense.setCategory("Thu nhập");
                         }
 
-                        // Lấy thời gian
                         String dateStr = data.child("transaction_date").getValue(String.class);
                         expense.setDate(parseDateStringToLong(dateStr));
 
@@ -162,11 +188,9 @@ public class ExpenseListFragment extends Fragment {
                     }
                 }
 
-                // Sắp xếp danh sách mới nhất lên đầu
                 Collections.sort(expenses, (e1, e2) -> Long.compare(e2.getDate(), e1.getDate()));
-
-                // Gọi hàm hiển thị ra UI
-                renderExpenses(expenses);
+                allExpenses = expenses;
+                renderExpenses();
             }
 
             @Override
@@ -176,9 +200,12 @@ public class ExpenseListFragment extends Fragment {
         });
     }
 
-    private void renderExpenses(List<Expense> expenses) {
+    private void renderExpenses() {
         if (txtEmpty == null || layoutAllExpenses == null) return;
-        
+
+        setupMonthFilter(allExpenses);
+        List<Expense> expenses = filterExpenses(allExpenses);
+        txtEmpty.setText(getEmptyMessage());
         txtEmpty.setVisibility(expenses.isEmpty() ? View.VISIBLE : View.GONE);
         layoutAllExpenses.removeAllViews();
 
@@ -187,17 +214,13 @@ public class ExpenseListFragment extends Fragment {
         LayoutInflater inflater = LayoutInflater.from(requireContext());
         String currentGroup = "";
 
-        for (int index = 0; index < expenses.size(); index++) {
-            Expense expense = expenses.get(index);
-
-            // Logic tạo Header (Nhóm theo ngày)
+        for (Expense expense : expenses) {
             String group = DateUtils.formatDate(expense.getDate());
             if (!group.equals(currentGroup)) {
                 currentGroup = group;
                 layoutAllExpenses.addView(createGroupHeader(group));
             }
 
-            // Nạp View cho 1 item chi tiêu
             View itemView = inflater.inflate(R.layout.item_expense, layoutAllExpenses, false);
             TextView txtIcon = itemView.findViewById(R.id.txtExpenseIcon);
             TextView txtMerchant = itemView.findViewById(R.id.txtMerchant);
@@ -207,15 +230,12 @@ public class ExpenseListFragment extends Fragment {
 
             txtIcon.setText(getCategoryIcon(expense.getCategory()));
             txtIcon.setBackgroundResource(getCategoryBackground(expense.getCategory()));
-
             txtMerchant.setText(expense.getMerchantName());
 
-            // Hiển thị thời gian thật
             SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
             String realTime = timeFormat.format(new Date(expense.getDate()));
             txtMeta.setText(realTime + " • " + expense.getCategory());
 
-            // Xử lý màu sắc Tiền Thu / Tiền Chi
             if ("Thu nhập".equals(expense.getCategory())) {
                 txtAmount.setText("+ " + CurrencyUtils.formatVnd(expense.getAmount()));
                 txtAmount.setTextColor(getResources().getColor(R.color.primary_green));
@@ -224,17 +244,87 @@ public class ExpenseListFragment extends Fragment {
                 txtAmount.setTextColor(0xFFB9181E);
             }
 
-            // Sự kiện Click để mở màn hình chi tiết
             itemView.setOnClickListener(v -> openExpenseDetail(expense.getId()));
-            if(btnDelete != null) {
-                btnDelete.setOnClickListener(v -> {
-                    // Xử lý xóa nếu cần, hoặc cũng mở chi tiết
-                    openExpenseDetail(expense.getId());
-                });
+            if (btnDelete != null) {
+                btnDelete.setOnClickListener(v -> openExpenseDetail(expense.getId()));
             }
 
             layoutAllExpenses.addView(itemView);
         }
+    }
+
+    private List<Expense> filterExpenses(List<Expense> expenses) {
+        String normalizedQuery = searchQuery.toLowerCase(Locale.ROOT);
+        List<Expense> filteredExpenses = new ArrayList<>();
+        for (Expense expense : expenses) {
+            if (matchesMonth(expense) && matchesSearch(expense, normalizedQuery)) {
+                filteredExpenses.add(expense);
+            }
+        }
+        return filteredExpenses;
+    }
+
+    private boolean matchesMonth(Expense expense) {
+        return selectedMonth == -1 || selectedMonth == getMonth(expense);
+    }
+
+    private boolean matchesSearch(Expense expense, String normalizedQuery) {
+        if (normalizedQuery.isEmpty()) {
+            return true;
+        }
+
+        String searchableText = (
+                expense.getMerchantName() + " " +
+                        expense.getCategory() + " " +
+                        expense.getNote() + " " +
+                        expense.getReceiptText() + " " +
+                        DateUtils.formatDate(expense.getDate()) + " " +
+                        CurrencyUtils.formatVnd(expense.getAmount()) + " " +
+                        ((long) expense.getAmount())
+        ).toLowerCase(Locale.ROOT);
+
+        return searchableText.contains(normalizedQuery);
+    }
+
+    private void setupMonthFilter(List<Expense> expenses) {
+        if (txtMonthFilter == null) return;
+
+        txtMonthFilter.setText(selectedMonth == -1
+                ? "≡  Tất cả tháng"
+                : "≡  Tháng " + (selectedMonth + 1));
+        txtMonthFilter.setOnClickListener(v -> showMonthMenu());
+    }
+
+    private void showMonthMenu() {
+        PopupMenu popupMenu = new PopupMenu(requireContext(), txtMonthFilter);
+
+        popupMenu.getMenu().add(0, 0, 0, "Tất cả tháng");
+        for (int month = 0; month < 12; month++) {
+            popupMenu.getMenu().add(0, month + 1, month + 1, "Tháng " + (month + 1));
+        }
+
+        popupMenu.setOnMenuItemClickListener(item -> {
+            selectedMonth = item.getItemId() == 0 ? -1 : item.getItemId() - 1;
+            renderExpenses();
+            return true;
+        });
+        popupMenu.show();
+    }
+
+    private int getMonth(Expense expense) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(expense.getDate());
+        return calendar.get(Calendar.MONTH);
+    }
+
+    private String getEmptyMessage() {
+        if (!searchQuery.isEmpty()) {
+            return "Không tìm thấy giao dịch phù hợp.";
+        }
+        if (selectedMonth != -1) {
+            return "Không có giao dịch trong tháng đã chọn.";
+        }
+        return "Chưa có dữ liệu chi tiêu.";
     }
 
     private TextView createGroupHeader(String title) {

@@ -21,12 +21,12 @@ import com.example.smartreceiptmanager.R;
 import com.example.smartreceiptmanager.auth.AuthViewModel;
 import com.example.smartreceiptmanager.expense.Expense;
 import com.example.smartreceiptmanager.expense.ExpenseDetailFragment;
-import com.example.smartreceiptmanager.auth.UserProfile;
 import com.example.smartreceiptmanager.expense.ExpenseStore;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class HomeFragment extends Fragment {
@@ -35,6 +35,7 @@ public class HomeFragment extends Fragment {
     private TextView txtWeekTotal;
     private TextView txtEmptyExpense;
     private LinearLayout layoutExpenseList;
+    private LinearLayout layoutWeekChart;
     private AuthViewModel authViewModel;
     private ImageView imgHeaderAvatar;
     private View cardHeaderAvatar;
@@ -64,27 +65,15 @@ public class HomeFragment extends Fragment {
         // 2. Khởi tạo AuthViewModel (Sử dụng requireActivity() để dùng chung tầng dữ liệu với Activity)
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
 
-        authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
-            if (userProfile != null && userProfile.getProfile() != null) {
-                String avatarUrl = userProfile.getProfile().getAvatar_url();
-                if (avatarUrl != null && !avatarUrl.isEmpty() && imgHeaderAvatar != null) {
-                    if (avatarUrl.startsWith("http")) {
-                        Glide.with(this)
-                                .load(avatarUrl)
-                                .placeholder(android.R.drawable.sym_def_app_icon)
-                                .circleCrop()
-                                .into(imgHeaderAvatar);
-                    } else {
-                        try {
-                            byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
-                            Glide.with(this)
-                                    .load(bytes)
-                                    .placeholder(android.R.drawable.sym_def_app_icon)
-                                    .circleCrop()
-                                    .into(imgHeaderAvatar);
-                        } catch (Exception ignored) {
-                        }
-                    }
+        // 3. Lắng nghe thông tin User để tự động load ảnh đại diện thực tế
+        authViewModel.getUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
+            if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
+                if (imgHeaderAvatar != null) {
+                    Glide.with(this)
+                            .load(firebaseUser.getPhotoUrl())
+                            .placeholder(android.R.drawable.sym_def_app_icon)
+                            .circleCrop()
+                            .into(imgHeaderAvatar);
                 }
             }
         });
@@ -102,6 +91,7 @@ public class HomeFragment extends Fragment {
         txtWeekTotal = view.findViewById(R.id.txtWeekTotal);
         txtEmptyExpense = view.findViewById(R.id.txtEmptyExpense);
         layoutExpenseList = view.findViewById(R.id.layoutExpenseList);
+        layoutWeekChart = view.findViewById(R.id.layoutWeekChart);
 
         // ĐÃ XÓA KHỐI CODE btnAddExpense TẠI ĐÂY ĐỂ TRÁNH LỖI CRASH ỨNG DỤNG
 
@@ -117,9 +107,10 @@ public class HomeFragment extends Fragment {
         List<Expense> savedExpenses = expenseStore.getAllExpenses();
         List<Expense> expenses = savedExpenses.isEmpty() ? getPreviewExpenses() : savedExpenses;
 
-        txtBalance.setText("12,450,000 đ");
-        txtWeekTotal.setText(CurrencyUtils.formatVnd(savedExpenses.isEmpty() ? 3200000 : expenseStore.getCurrentMonthTotal()));
+        txtBalance.setText(CurrencyUtils.formatVnd(savedExpenses.isEmpty() ? 12450000 : expenseStore.getCurrentMonthTotal()));
+        txtWeekTotal.setText(CurrencyUtils.formatVnd(getWeekTotal(expenses)));
         txtEmptyExpense.setVisibility(View.GONE);
+        renderWeekChart(expenses);
 
         layoutExpenseList.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(requireContext());
@@ -181,6 +172,120 @@ public class HomeFragment extends Fragment {
         }
 
         return DateUtils.formatDate(expense.getDate());
+    }
+
+    private double getWeekTotal(List<Expense> expenses) {
+        long anchorDate = expenses.isEmpty() ? System.currentTimeMillis() : expenses.get(0).getDate();
+        double total = 0;
+        for (Expense expense : expenses) {
+            if (isSameWeek(anchorDate, expense.getDate())) {
+                total += expense.getAmount();
+            }
+        }
+        return total;
+    }
+
+    private void renderWeekChart(List<Expense> expenses) {
+        if (layoutWeekChart == null) return;
+
+        layoutWeekChart.removeAllViews();
+        String[] labels = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
+        long anchorDate = expenses.isEmpty() ? System.currentTimeMillis() : expenses.get(0).getDate();
+        int activeIndex = getWeekIndex(anchorDate);
+        double[] totals = new double[7];
+        double maxTotal = 0;
+
+        for (Expense expense : expenses) {
+            if (isSameWeek(anchorDate, expense.getDate())) {
+                int index = getWeekIndex(expense.getDate());
+                totals[index] += expense.getAmount();
+                maxTotal = Math.max(maxTotal, totals[index]);
+            }
+        }
+
+        for (int index = 0; index < labels.length; index++) {
+            boolean isActive = index == activeIndex;
+            LinearLayout column = new LinearLayout(requireContext());
+            column.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1));
+            column.setGravity(android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
+            column.setOrientation(LinearLayout.VERTICAL);
+            if (index < labels.length - 1) {
+                column.setPadding(0, 0, dp(2), 0);
+            }
+
+            TextView label = new TextView(requireContext());
+            label.setText(isActive ? labels[index] : "");
+            label.setTextColor(getResources().getColor(R.color.primary_green));
+            label.setTextSize(13);
+            label.setTypeface(null, android.graphics.Typeface.BOLD);
+            label.setGravity(android.view.Gravity.CENTER);
+            column.addView(label, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    dp(20)
+            ));
+
+            View bar = new View(requireContext());
+            int barHeight = getBarHeight(totals[index], maxTotal, isActive, index, activeIndex);
+            bar.setBackgroundColor(getResources().getColor(getChartBarColor(totals[index], isActive, index, activeIndex)));
+            column.addView(bar, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(barHeight)
+            ));
+
+            layoutWeekChart.addView(column);
+        }
+    }
+
+    private int getBarHeight(double amount, double maxTotal, boolean isActive, int index, int activeIndex) {
+        if (isActive) {
+            return 58;
+        }
+        if (index == activeIndex - 1) {
+            return 34;
+        }
+        if (index == activeIndex - 2) {
+            return 24;
+        }
+        if (index == activeIndex + 1) {
+            return 20;
+        }
+        if (maxTotal <= 0) {
+            return 8;
+        }
+        if (amount <= 0) {
+            return 8;
+        }
+        int minHeight = 18;
+        int maxHeight = 42;
+        return minHeight + (int) Math.round((amount / maxTotal) * (maxHeight - minHeight));
+    }
+
+    private int getChartBarColor(double amount, boolean isActive, int index, int activeIndex) {
+        if (isActive) {
+            return R.color.primary_green;
+        }
+        return amount > 0 || Math.abs(index - activeIndex) <= 2 ? R.color.chart_green_soft : R.color.chart_gray_soft;
+    }
+
+    private boolean isSameWeek(long firstDate, long secondDate) {
+        Calendar first = Calendar.getInstance();
+        Calendar second = Calendar.getInstance();
+        first.setFirstDayOfWeek(Calendar.MONDAY);
+        second.setFirstDayOfWeek(Calendar.MONDAY);
+        first.setTimeInMillis(firstDate);
+        second.setTimeInMillis(secondDate);
+        return first.get(Calendar.YEAR) == second.get(Calendar.YEAR)
+                && first.get(Calendar.WEEK_OF_YEAR) == second.get(Calendar.WEEK_OF_YEAR);
+    }
+
+    private int getWeekIndex(long date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(date);
+        return (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7;
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private String getCategoryIcon(String category) {
