@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="32dp">
+            android:padding="24dp">
 
             <TextView
                 android:layout_width="match_parent"
@@ -27,50 +27,70 @@
                 android:textStyle="bold" />
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="28dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginEnd="22dp"
-                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="28dp"
                     android:background="@drawable/bg_search_figma"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="26dp">
+                    android:paddingHorizontal="16dp">
 
-                    <TextView
-                        android:layout_width="36dp"
+                <TextView
+                        android:layout_width="28dp"
                         android:layout_height="match_parent"
                         android:gravity="center"
                         android:text="⌕"
                         android:textColor="@color/text_secondary"
                         android:textSize="24sp" />
 
-                    <TextView
+                <EditText
+                        android:id="@+id/edtSearchExpense"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginStart="10dp"
                         android:layout_weight="1"
+                        android:background="@android:color/transparent"
                         android:gravity="center_vertical"
-                        android:text="Tìm kiếm giao dịch..."
-                        android:textColor="@color/text_secondary"
+                        android:hint="Tìm kiếm giao dịch..."
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:padding="0dp"
+                        android:singleLine="true"
+                        android:textColor="@color/text_main"
+                        android:textColorHint="@color/text_secondary"
                         android:textSize="16sp" />
-                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="152dp"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/bg_filter_figma"
-                    android:gravity="center"
-                    android:text="≡  Tháng 10"
-                    android:textColor="@color/text_main"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Ngày/Tháng"
+                        android:textColor="@color/text_main"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                <TextView
+                        android:id="@+id/txtMonthFilter"
+                        android:layout_width="144dp"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_filter_figma"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        android:gravity="center"
+                        android:text="≡  Tất cả tháng"
+                        android:textColor="@color/text_main"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
             </LinearLayout>
 
             <TextView
