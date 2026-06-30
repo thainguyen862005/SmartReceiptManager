@@ -222,24 +222,66 @@ public class ScanBillFragment extends Fragment {
 
     private void handleBarcodeResult(Barcode barcode, Bitmap bitmap) {
         String rawValue = barcode.getRawValue() != null ? barcode.getRawValue() : "";
-        binding.tvStatus.setText("Đã quét QR");
 
         String shopName;
         long amount = 0;
 
-        switch (barcode.getValueType()) {
-            case Barcode.TYPE_URL:
-                shopName = barcode.getUrl() != null
-                        ? barcode.getUrl().getTitle() : "QR URL";
-                break;
-            case Barcode.TYPE_TEXT:
-            default:
-                shopName = parseShopName(rawValue);
-                amount   = parseAmount(rawValue);
-                break;
+        if (isLikelyPaymentQr(rawValue)) {
+            // QR chuẩn EMV / VietQR (ngân hàng) -> parse đúng theo tag, không dùng regex đoán số
+            binding.tvStatus.setText("Đã quét QR hóa đơn");
+            java.util.Map<String, String> emv = parseEmvQr(rawValue);
+
+            shopName = emv.containsKey("59") ? emv.get("59") : "Không rõ";
+
+            if (emv.containsKey("54")) {
+                try {
+                    amount = (long) Double.parseDouble(emv.get("54"));
+                } catch (NumberFormatException ignored) {}
+            }
+            // Nếu QR động (không có sẵn số tiền) -> amount = 0, để user tự nhập ở ScanResultFragment
+        } else {
+            // Không phải QR ngân hàng chuẩn -> fallback cách cũ cho QR text/URL thường
+            binding.tvStatus.setText("Đã quét QR");
+            switch (barcode.getValueType()) {
+                case Barcode.TYPE_URL:
+                    shopName = barcode.getUrl() != null
+                            ? barcode.getUrl().getTitle() : "QR URL";
+                    break;
+                case Barcode.TYPE_TEXT:
+                default:
+                    shopName = parseShopName(rawValue);
+                    amount   = parseAmount(rawValue);
+                    break;
+            }
         }
 
         navigateToResult(shopName, amount, rawValue);
+    }
+    private boolean isLikelyPaymentQr(String raw) {
+        return raw != null && raw.length() > 10 && raw.startsWith("000201");
+    }
+
+    // Parser EMV QR (TLV: Tag(2 ký tự) + Length(2 ký tự) + Value)
+    private java.util.Map<String, String> parseEmvQr(String raw) {
+        java.util.Map<String, String> result = new java.util.HashMap<>();
+        int i = 0;
+        while (i + 4 <= raw.length()) {
+            String tag = raw.substring(i, i + 2);
+            String lenStr = raw.substring(i + 2, i + 4);
+            int len;
+            try {
+                len = Integer.parseInt(lenStr);
+            } catch (NumberFormatException e) {
+                break; // dữ liệu hỏng/không đúng chuẩn, dừng parse an toàn
+            }
+            int valueStart = i + 4;
+            int valueEnd = valueStart + len;
+            if (valueEnd > raw.length()) break;
+
+            result.put(tag, raw.substring(valueStart, valueEnd));
+            i = valueEnd;
+        }
+        return result;
     }
 
 
