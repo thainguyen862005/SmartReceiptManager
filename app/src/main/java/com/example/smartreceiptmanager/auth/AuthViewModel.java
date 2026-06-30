@@ -28,8 +28,11 @@ public class AuthViewModel extends AndroidViewModel {
     private final DatabaseReference databaseRef;
 
     private final MutableLiveData<FirebaseUser> userLiveData;
+    private final MutableLiveData<UserProfile> userProfileLiveData;
     private final MutableLiveData<String> errorLiveData;
     private final MutableLiveData<Boolean> loadingLiveData;
+    private com.google.firebase.database.DatabaseReference userProfileRef;
+    private com.google.firebase.database.ValueEventListener profileListener;
 
     public AuthViewModel(Application application) {
         super(application);
@@ -37,13 +40,55 @@ public class AuthViewModel extends AndroidViewModel {
         databaseRef = FirebaseDatabase.getInstance().getReference();
 
         userLiveData = new MutableLiveData<>(auth.getCurrentUser());
+        userProfileLiveData = new MutableLiveData<>();
         errorLiveData = new MutableLiveData<>();
         loadingLiveData = new MutableLiveData<>(false);
+
+        FirebaseUser user = auth.getCurrentUser();
+        if (user != null) {
+            listenToUserProfile(user.getUid());
+        }
     }
 
     public LiveData<FirebaseUser> getUserLiveData()   { return userLiveData; }
+    public LiveData<UserProfile>  getUserProfileLiveData() { return userProfileLiveData; }
     public LiveData<String>       getErrorLiveData()  { return errorLiveData; }
     public LiveData<Boolean>      getLoadingLiveData(){ return loadingLiveData; }
+
+    private void updateActiveUser(FirebaseUser user) {
+        userLiveData.setValue(user);
+        if (user != null) {
+            listenToUserProfile(user.getUid());
+        } else {
+            clearUserProfileListener();
+        }
+    }
+
+    private void listenToUserProfile(String uid) {
+        if (userProfileRef != null && profileListener != null) {
+            userProfileRef.removeEventListener(profileListener);
+        }
+        userProfileRef = databaseRef.child("User_Profiles/users").child(uid);
+        profileListener = new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(com.google.firebase.database.DataSnapshot snapshot) {
+                UserProfile profile = snapshot.getValue(UserProfile.class);
+                userProfileLiveData.setValue(profile);
+            }
+
+            @Override
+            public void onCancelled(com.google.firebase.database.DatabaseError error) {
+            }
+        };
+        userProfileRef.addValueEventListener(profileListener);
+    }
+
+    private void clearUserProfileListener() {
+        if (userProfileRef != null && profileListener != null) {
+            userProfileRef.removeEventListener(profileListener);
+        }
+        userProfileLiveData.setValue(null);
+    }
 
     public void login(String email, String password) {
         loadingLiveData.setValue(true);
@@ -52,7 +97,7 @@ public class AuthViewModel extends AndroidViewModel {
                     loadingLiveData.setValue(false);
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
-                        userLiveData.setValue(user);
+                        updateActiveUser(user);
                         onLoginSuccess(user);
                     } else {
                         String msg = task.getException() != null ? task.getException().getMessage() : "Đăng nhập thất bại";
@@ -61,14 +106,12 @@ public class AuthViewModel extends AndroidViewModel {
                 });
     }
 
-
     public void register(String email, String password) {
         loadingLiveData.setValue(true);
         auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
-
                         onRegisterSuccess(user);
                     } else {
                         loadingLiveData.setValue(false);
@@ -77,7 +120,6 @@ public class AuthViewModel extends AndroidViewModel {
                     }
                 });
     }
-
 
     public void loginWithCredential(AuthCredential credential) {
         loadingLiveData.setValue(true);
@@ -90,7 +132,7 @@ public class AuthViewModel extends AndroidViewModel {
                             onRegisterSuccess(user);
                         } else {
                             loadingLiveData.setValue(false);
-                            userLiveData.setValue(user);
+                            updateActiveUser(user);
                             onLoginSuccess(user);
                         }
                     } else {
@@ -103,23 +145,14 @@ public class AuthViewModel extends AndroidViewModel {
 
     public void logout() {
         auth.signOut();
-        userLiveData.setValue(null);
+        updateActiveUser(null);
     }
 
-    public void updateAvatar(String newUrl) {
+    public void updateAvatar(String newBase64) {
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
-            UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                    .setPhotoUri(Uri.parse(newUrl))
-                    .build();
-            user.updateProfile(profileUpdates)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            String uid = user.getUid();
-                            databaseRef.child("User_Profiles/users").child(uid).child("profile").child("avatar_url").setValue(newUrl);
-                            userLiveData.setValue(auth.getCurrentUser());
-                        }
-                    });
+            String uid = user.getUid();
+            databaseRef.child("User_Profiles/users").child(uid).child("profile").child("avatar_url").setValue(newBase64);
         }
     }
 
@@ -134,7 +167,7 @@ public class AuthViewModel extends AndroidViewModel {
                         if (task.isSuccessful()) {
                             String uid = user.getUid();
                             databaseRef.child("User_Profiles/users").child(uid).child("profile").child("full_name").setValue(newName);
-                            userLiveData.setValue(auth.getCurrentUser());
+                            updateActiveUser(auth.getCurrentUser());
                         }
                     });
         }
@@ -179,7 +212,7 @@ public class AuthViewModel extends AndroidViewModel {
                             databaseRef.child("User_Profiles/users").child(uid).removeValue();
                             databaseRef.child("User_Profiles/wallets").child(uid).removeValue();
                             databaseRef.child("User_Profiles/categories").child(uid).removeValue();
-                            userLiveData.setValue(null);
+                            updateActiveUser(null);
                         } else {
                             errorLiveData.setValue(task.getException() != null ? task.getException().getMessage() : "Delete account failed");
                         }
@@ -239,7 +272,7 @@ public class AuthViewModel extends AndroidViewModel {
                         }
                     }
                     loadingLiveData.setValue(false);
-                    userLiveData.setValue(user);
+                    updateActiveUser(user);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Lỗi tạo dữ liệu ban đầu: " + e.getMessage());

@@ -20,6 +20,8 @@ import com.bumptech.glide.Glide;
 import com.example.smartreceiptmanager.ProfileActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import androidx.lifecycle.ViewModelProvider;
+import com.example.smartreceiptmanager.auth.AuthViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,14 +55,29 @@ public class ExpenseListFragment extends Fragment {
             });
         }
         if (imgHeaderAvatar != null) {
-            FirebaseAuth.getInstance().addAuthStateListener(firebaseAuth -> {
-                FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
-                if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
-                    Glide.with(this)
-                            .load(firebaseUser.getPhotoUrl())
-                            .placeholder(android.R.drawable.sym_def_app_icon)
-                            .circleCrop()
-                            .into(imgHeaderAvatar);
+            AuthViewModel authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
+            authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
+                if (userProfile != null && userProfile.getProfile() != null) {
+                    String avatarUrl = userProfile.getProfile().getAvatar_url();
+                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                        if (avatarUrl.startsWith("http")) {
+                            Glide.with(this)
+                                    .load(avatarUrl)
+                                    .placeholder(android.R.drawable.sym_def_app_icon)
+                                    .circleCrop()
+                                    .into(imgHeaderAvatar);
+                        } else {
+                            try {
+                                byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
+                                Glide.with(this)
+                                        .load(bytes)
+                                        .placeholder(android.R.drawable.sym_def_app_icon)
+                                        .circleCrop()
+                                        .into(imgHeaderAvatar);
+                            } catch (Exception ignored) {
+                            }
+                        }
+                    }
                 }
             });
         }
