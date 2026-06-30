@@ -14,13 +14,6 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Quản lý việc đồng bộ dữ liệu offline -> Firestore.
- *
- * Cách dùng:
- *   - Gọi SyncManager.getInstance(context).syncPendingIfOnline()
- *     bất cứ khi nào muốn thử sync (vào app, sau khi lưu expense mới, v.v.)
- */
 public class SyncManager {
 
     private static final String TAG = "SyncManager";
@@ -42,68 +35,56 @@ public class SyncManager {
         this.firestoreRepo = FirestoreRepository.getInstance();
     }
 
-    // ================================================================
-    // SYNC TRIGGER
-    // ================================================================
-
-    /**
-     * Kiểm tra mạng + user đã đăng nhập, sau đó sync tất cả expense
-     * có cờ isSynced = false lên Firestore.
-     *
-     * Gọi hàm này sau khi:
-     *   1. User đăng nhập thành công
-     *   2. User lưu một expense mới
-     *   3. App vào foreground (onResume của MainActivity)
-     */
     public void syncPendingIfOnline() {
         if (!isNetworkAvailable()) {
-            Log.d(TAG, "Không có mạng – bỏ qua sync, sẽ sync sau");
+            Log.d(TAG, "No network, skip sync");
             return;
         }
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
-            Log.d(TAG, "Chưa đăng nhập – không thể sync");
+            Log.d(TAG, "No signed-in user, skip sync");
             return;
         }
 
         String uid = currentUser.getUid();
         ExpenseStore expenseStore = new ExpenseStore(appContext);
         List<Expense> allExpenses = expenseStore.getAllExpenses();
+        List<String> pendingDeletedIds = expenseStore.getPendingDeletedExpenseIds();
 
-        // Lọc những expense chưa được sync
+        if (!pendingDeletedIds.isEmpty()) {
+            syncPendingDeletes(uid, expenseStore, pendingDeletedIds);
+        }
+
         List<Expense> pendingExpenses = new ArrayList<>();
-        for (Expense e : allExpenses) {
-            if (!e.isSynced()) {
-                pendingExpenses.add(e);
+        for (Expense expense : allExpenses) {
+            if (!expense.isSynced()) {
+                pendingExpenses.add(expense);
             }
         }
 
         if (pendingExpenses.isEmpty()) {
-            Log.d(TAG, "Không có expense nào cần sync");
+            Log.d(TAG, pendingDeletedIds.isEmpty()
+                    ? "No expenses need sync"
+                    : "Only pending deletes need sync");
             return;
         }
 
-        Log.d(TAG, "Bắt đầu sync " + pendingExpenses.size() + " expense...");
+        Log.d(TAG, "Start syncing " + pendingExpenses.size() + " expenses");
 
         firestoreRepo.syncPendingExpenses(uid, pendingExpenses,
                 (successCount, failCount) -> {
-                    Log.d(TAG, "Sync xong: " + successCount + " thành công, " + failCount + " thất bại");
+                    Log.d(TAG, "Sync completed: " + successCount + " success, " + failCount + " failed");
 
-                    // Cập nhật cờ isSynced = true trong local storage cho những cái thành công
                     if (successCount > 0) {
                         markSyncedExpenses(expenseStore, pendingExpenses, uid);
                     }
                 });
     }
 
-    /**
-     * Sync một expense cụ thể ngay sau khi lưu.
-     * Nếu không có mạng thì bỏ qua (sẽ được sync bởi syncPendingIfOnline lần sau).
-     */
     public void syncSingleExpense(Expense expense) {
         if (!isNetworkAvailable()) {
-            Log.d(TAG, "Không có mạng – expense " + expense.getId() + " sẽ được sync sau");
+            Log.d(TAG, "No network, expense will sync later: " + expense.getId());
             return;
         }
 
@@ -114,26 +95,22 @@ public class SyncManager {
         firestoreRepo.syncExpense(uid, expense, new FirestoreRepository.OnExpenseSyncedCallback() {
             @Override
             public void onSynced(String expenseId) {
-                // Cập nhật isSynced = true trong local storage
                 ExpenseStore store = new ExpenseStore(appContext);
                 Expense local = store.getExpenseById(expenseId);
                 if (local != null) {
                     local.setSynced(true);
                     store.saveExpense(local);
                 }
-                Log.d(TAG, "Sync single expense thành công: " + expenseId);
+                Log.d(TAG, "Single expense synced: " + expenseId);
             }
 
             @Override
             public void onFailure(String error) {
-                Log.e(TAG, "Sync single expense thất bại: " + error);
+                Log.e(TAG, "Single expense sync failed: " + error);
             }
         });
     }
 
-    /**
-     * Xóa expense khỏi Firestore khi user xóa local.
-     */
     public void deleteExpenseFromFirestore(String expenseId) {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) return;
@@ -141,39 +118,44 @@ public class SyncManager {
         firestoreRepo.deleteExpense(currentUser.getUid(), expenseId, new FirestoreRepository.OnCompleteCallback() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Xóa expense Firestore OK: " + expenseId);
+                new ExpenseStore(appContext).markDeleteSynced(expenseId);
+                Log.d(TAG, "Firestore expense deleted: " + expenseId);
             }
 
             @Override
             public void onFailure(String error) {
-                Log.e(TAG, "Xóa expense Firestore thất bại: " + error);
+                Log.e(TAG, "Firestore expense delete failed: " + error);
             }
         });
     }
 
-    // ================================================================
-    // HELPER
-    // ================================================================
-
-    /**
-     * Sau khi batch sync thành công, cập nhật isSynced = true
-     * cho tất cả expense đã được sync (dựa vào uid để đối chiếu).
-     *
-     * Lưu ý: do syncPendingExpenses không phân biệt được expense nào thành công,
-     * hàm này mark toàn bộ pending list là synced khi đủ số lượng thành công.
-     * Với dự án này là chấp nhận được vì dữ liệu nhỏ.
-     */
     private void markSyncedExpenses(ExpenseStore store, List<Expense> synced, String uid) {
         for (Expense expense : synced) {
             expense.setSynced(true);
             store.saveExpense(expense);
         }
-        Log.d(TAG, "Đã đánh dấu " + synced.size() + " expense là synced");
+        Log.d(TAG, "Marked " + synced.size() + " expenses as synced");
     }
 
-    /**
-     * Kiểm tra kết nối mạng (hỗ trợ Android 6+).
-     */
+    private void syncPendingDeletes(String uid, ExpenseStore store, List<String> pendingDeletedIds) {
+        Log.d(TAG, "Start syncing " + pendingDeletedIds.size() + " pending deletes");
+
+        for (String expenseId : pendingDeletedIds) {
+            firestoreRepo.deleteExpense(uid, expenseId, new FirestoreRepository.OnCompleteCallback() {
+                @Override
+                public void onSuccess() {
+                    store.markDeleteSynced(expenseId);
+                    Log.d(TAG, "Pending delete synced: " + expenseId);
+                }
+
+                @Override
+                public void onFailure(String error) {
+                    Log.e(TAG, "Pending delete sync failed: " + expenseId + " - " + error);
+                }
+            });
+        }
+    }
+
     public boolean isNetworkAvailable() {
         ConnectivityManager cm =
                 (ConnectivityManager) appContext.getSystemService(Context.CONNECTIVITY_SERVICE);

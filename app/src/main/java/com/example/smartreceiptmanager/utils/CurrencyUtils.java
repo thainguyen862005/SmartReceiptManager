@@ -10,6 +10,11 @@ public class CurrencyUtils {
         return formatter.format(amount) + "đ";
     }
 
+    public static String formatAmount(double amount) {
+        NumberFormat formatter = NumberFormat.getInstance(new Locale("vi", "VN"));
+        return formatter.format(amount);
+    }
+
     public static double parseAmount(String input) {
         if (input == null || input.trim().isEmpty()) {
             return 0;

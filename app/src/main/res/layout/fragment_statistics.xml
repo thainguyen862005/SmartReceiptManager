@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA"
+    android:background="@color/bg_background"
     tools:context=".statistics.StatisticsFragment">
 
     <androidx.core.widget.NestedScrollView
@@ -24,7 +24,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Thống kê chi tiêu"
-                android:textColor="#1A1A1A"
+                android:textColor="@color/text_main"
                 android:textSize="24sp"
                 android:textStyle="bold" />
 
@@ -34,14 +34,14 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="Phân tích dữ liệu tài chính của bạn"
-                android:textColor="#757575"
+                android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:background="#EFEFEF"
+                android:background="@color/border_light"
                 android:orientation="horizontal"
                 android:padding="4dp">
 
@@ -50,11 +50,11 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="#FFFFFF"
+                    android:background="@color/bg_surface"
                     android:gravity="center"
                     android:paddingVertical="8dp"
                     android:text="Tháng này"
-                    android:textColor="#006A4E"
+                    android:textColor="@color/primary_green"
                     android:textStyle="bold" />
 
                 <TextView
@@ -65,7 +65,7 @@
                     android:gravity="center"
                     android:paddingVertical="8dp"
                     android:text="3 Tháng"
-                    android:textColor="#757575" />
+                    android:textColor="@color/text_secondary" />
 
                 <TextView
                     android:id="@+id/tabYear"
@@ -75,7 +75,7 @@
                     android:gravity="center"
                     android:paddingVertical="8dp"
                     android:text="Năm nay"
-                    android:textColor="#757575" />
+                    android:textColor="@color/text_secondary" />
             </LinearLayout>
 
             <androidx.cardview.widget.CardView
@@ -95,7 +95,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Phân bổ danh mục"
-                        android:textColor="#1A1A1A"
+                        android:textColor="@color/text_main"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -112,7 +112,7 @@
                             android:background="@drawable/bg_chart_circle_placeholder"
                             android:gravity="center"
                             android:text="Tổng\n12.5M"
-                            android:textColor="#006A4E"
+                            android:textColor="@color/primary_green"
                             android:textSize="18sp"
                             android:textStyle="bold" />
 
@@ -127,7 +127,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:text="●  Ăn uống    40%"
-                                android:textColor="#006A4E"
+                                android:textColor="@color/primary_green"
                                 android:textSize="14sp" />
 
                             <TextView
@@ -175,7 +175,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Xu hướng chi tiêu"
-                        android:textColor="#1A1A1A"
+                        android:textColor="@color/text_main"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -250,7 +250,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Top danh mục chi nhiều nhất"
-                        android:textColor="#1A1A1A"
+                        android:textColor="@color/text_main"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -268,7 +268,7 @@
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="16dp"
                         android:text="Xem tất cả danh mục"
-                        android:textColor="#006A4E"
+                        android:textColor="@color/primary_green"
                         android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>

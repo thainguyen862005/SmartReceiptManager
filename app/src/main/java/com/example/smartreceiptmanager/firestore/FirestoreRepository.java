@@ -12,50 +12,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Quản lý toàn bộ tương tác với Firebase Firestore.
- *
- * Cấu trúc dữ liệu trên Firestore (align theo schema Việt thiết kế):
- *
- *   users/{uid}/
- *     email: String
- *     phone_number: String
- *     facebook_id: String
- *     google_id: String
- *     created_at: Long (timestamp)
- *     profile/
- *       full_name: String
- *       dob: String
- *       gender: String
- *       address: String
- *       nationality: String
- *       marital_status: String
- *       avatar_url: String
- *
- *   transactions/{uid}/{transactionId}/
- *     type: "expense" | "income"
- *     amount: Double
- *     wallet_id: String
- *     note: String
- *     transaction_date: String
- *     payment_method: String
- *     receipt_image_url: String
- *     created_at: Long (timestamp)
- *     category/
- *       id: String
- *       name: String
- */
 public class FirestoreRepository {
 
     private static final String TAG = "FirestoreRepository";
 
-    // Tên collection – align theo schema Việt
     private static final String COL_USERS        = "users";
-    private static final String COL_TRANSACTIONS = "transactions";  // Đổi từ "expenses" → "transactions"
+    private static final String COL_TRANSACTIONS = "transactions";
 
     private final FirebaseFirestore db;
 
-    // -------- Singleton --------
     private static FirestoreRepository instance;
 
     public static FirestoreRepository getInstance() {
@@ -69,15 +34,6 @@ public class FirestoreRepository {
         db = FirebaseFirestore.getInstance();
     }
 
-    // ================================================================
-    // USER PROFILE – lưu theo schema Việt
-    // ================================================================
-
-    /**
-     * Lưu/cập nhật thông tin user lên Firestore sau khi đăng nhập thành công.
-     * Field names theo đúng schema Việt: email, phone_number, facebook_id, google_id,
-     * created_at, và sub-map profile { full_name, avatar_url, ... }
-     */
     public void saveUserProfile(FirebaseUser firebaseUser, OnCompleteCallback callback) {
         if (firebaseUser == null) {
             if (callback != null) callback.onFailure("FirebaseUser is null");
@@ -105,7 +61,7 @@ public class FirestoreRepository {
         final String finalGoogleId   = googleId;
         final String finalFacebookId = facebookId;
 
-        // Kiểm tra user đã tồn tại chưa (để giữ created_at)
+        // Kiểm tra user đã tồn tại chưa
         db.collection(COL_USERS).document(uid).get()
                 .addOnSuccessListener(doc -> {
 
@@ -152,9 +108,6 @@ public class FirestoreRepository {
                 });
     }
 
-    /**
-     * Đọc UserProfile từ Firestore theo uid.
-     */
     public void getUserProfile(String uid, OnProfileLoadedCallback callback) {
         db.collection(COL_USERS).document(uid).get()
                 .addOnSuccessListener(doc -> {
@@ -171,15 +124,6 @@ public class FirestoreRepository {
                 });
     }
 
-    // ================================================================
-    // TRANSACTIONS – align theo schema Việt (đổi tên từ expenses)
-    // ================================================================
-
-    /**
-     * Sync một Expense lên Firestore dưới path: transactions/{uid}/{expenseId}
-     * Fields được map theo schema Việt: type, amount, wallet_id, note,
-     * transaction_date, payment_method, receipt_image_url, created_at, category{}
-     */
     public void syncExpense(String uid, Expense expense, OnExpenseSyncedCallback callback) {
         if (uid == null || expense == null || expense.getId() == null) {
             if (callback != null) callback.onFailure("Dữ liệu không hợp lệ");
@@ -190,7 +134,7 @@ public class FirestoreRepository {
 
         db.collection(COL_TRANSACTIONS)
                 .document(uid)
-                .collection("items")          // transactions/{uid}/items/{expenseId}
+                .collection("items")
                 .document(expense.getId())
                 .set(data, SetOptions.merge())
                 .addOnSuccessListener(unused -> {
@@ -203,9 +147,6 @@ public class FirestoreRepository {
                 });
     }
 
-    /**
-     * Sync nhiều expense cùng lúc (batch sync khi có mạng trở lại).
-     */
     public void syncPendingExpenses(String uid, List<Expense> pendingExpenses,
                                     OnBatchSyncCallback callback) {
         if (pendingExpenses == null || pendingExpenses.isEmpty()) {
@@ -239,9 +180,6 @@ public class FirestoreRepository {
         }
     }
 
-    /**
-     * Xóa transaction khỏi Firestore khi user xóa local.
-     */
     public void deleteExpense(String uid, String expenseId, OnCompleteCallback callback) {
         if (uid == null || expenseId == null) return;
 
@@ -260,24 +198,21 @@ public class FirestoreRepository {
                 });
     }
 
-    // ================================================================
-    // HELPER – chuyển Expense sang Map theo schema Việt
-    // ================================================================
 
     private Map<String, Object> expenseToTransactionMap(Expense expense) {
-        // Sub-map category (denormalization theo schema Việt)
+
         Map<String, Object> categoryMap = new HashMap<>();
         categoryMap.put("id",   expense.getCategory() != null ? expense.getCategory() : "other");
         categoryMap.put("name", expense.getCategory() != null ? expense.getCategory() : "Khác");
 
-        // Root map – đúng theo schema Việt (Bảng 4: transactions)
+
         Map<String, Object> data = new HashMap<>();
-        data.put("type",              "expense");                 // "expense" hoặc "income"
+        data.put("type",              "expense");
         data.put("amount",            expense.getAmount());
-        data.put("wallet_id",         "default");                 // Mặc định ví chính
+        data.put("wallet_id",         "default");
         data.put("note",              expense.getNote() != null ? expense.getNote() : "");
         data.put("transaction_date",  String.valueOf(expense.getDate()));
-        data.put("payment_method",    "Tiền mặt");               // Default
+        data.put("payment_method",    "Tiền mặt");
         data.put("receipt_image_url", expense.getReceiptText() != null ? expense.getReceiptText() : "");
         data.put("created_at",        expense.getCreatedAt());
         data.put("category",          categoryMap);
@@ -289,9 +224,6 @@ public class FirestoreRepository {
         return data;
     }
 
-    // ================================================================
-    // CALLBACK INTERFACES
-    // ================================================================
 
     public interface OnCompleteCallback {
         void onSuccess();

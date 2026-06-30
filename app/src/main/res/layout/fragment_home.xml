@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="@color/bg_background">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -37,7 +37,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Tổng số dư"
-                        android:textColor="#C6F1DF"
+                        android:textColor="@color/mint_green"
                         android:textSize="16sp" />
 
                     <TextView
@@ -55,7 +55,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="18dp"
                         android:text="↗  +2.4% so với tháng trước"
-                        android:textColor="#8DE4BC"
+                        android:textColor="@color/mint_green"
                         android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -81,7 +81,7 @@
                             android:layout_weight="1"
                             android:maxLines="2"
                             android:text="Chi tiêu tuần này"
-                            android:textColor="#1D1F20"
+                            android:textColor="@color/text_main"
                             android:textSize="22sp"
                             android:textStyle="bold" />
 
@@ -91,7 +91,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
                             android:text="3,200,000 đ"
-                            android:textColor="#006F49"
+                            android:textColor="@color/primary_green"
                             android:textSize="20sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -109,14 +109,14 @@
                             android:layout_height="34dp"
                             android:layout_marginEnd="2dp"
                             android:layout_weight="1"
-                            android:background="#BFEED8" />
+                            android:background="@color/green_light" />
 
                         <View
                             android:layout_width="0dp"
                             android:layout_height="50dp"
                             android:layout_marginEnd="2dp"
                             android:layout_weight="1"
-                            android:background="#BFEED8" />
+                            android:background="@color/green_light" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -130,14 +130,14 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="T4"
-                                android:textColor="#006F49"
+                                android:textColor="@color/primary_green"
                                 android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <View
                                 android:layout_width="match_parent"
                                 android:layout_height="58dp"
-                                android:background="#006F49" />
+                                android:background="@color/primary_green" />
                         </LinearLayout>
 
                         <View
@@ -145,20 +145,20 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="2dp"
                             android:layout_weight="1"
-                            android:background="#BFEED8" />
+                            android:background="@color/green_light" />
 
                         <View
                             android:layout_width="0dp"
                             android:layout_height="18dp"
                             android:layout_marginEnd="2dp"
                             android:layout_weight="1"
-                            android:background="#E0E0E0" />
+                            android:background="@color/border_light" />
 
                         <View
                             android:layout_width="0dp"
                             android:layout_height="18dp"
                             android:layout_weight="1"
-                            android:background="#E0E0E0" />
+                            android:background="@color/border_light" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -174,7 +174,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Giao dịch gần đây"
-                        android:textColor="#1D1F20"
+                        android:textColor="@color/text_main"
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
@@ -184,7 +184,7 @@
                         android:layout_height="44dp"
                         android:gravity="center"
                         android:text="Xem tất cả"
-                        android:textColor="#006F49"
+                        android:textColor="@color/primary_green"
                         android:textSize="16sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -197,7 +197,7 @@
                     android:background="@drawable/bg_card_figma"
                     android:gravity="center"
                     android:text="Chưa có chi tiêu nào"
-                    android:textColor="#435047"
+                    android:textColor="@color/text_secondary"
                     android:textSize="16sp"
                     android:visibility="gone" />
 

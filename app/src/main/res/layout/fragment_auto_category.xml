@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="@color/bg_background">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -26,7 +26,7 @@
                     android:layout_centerVertical="true"
                     android:gravity="center"
                     android:text="‹"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="38sp" />
 
                 <TextView
@@ -35,7 +35,7 @@
                     android:layout_centerInParent="true"
                     android:gravity="center"
                     android:text="Phân loại tự động"
-                    android:textColor="#1D1F20"
+                    android:textColor="@color/text_main"
                     android:textSize="22sp"
                     android:textStyle="bold" />
             </RelativeLayout>
@@ -52,7 +52,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="✓  HOÀN TẤT PHÂN TÍCH"
-                    android:textColor="#006F49"
+                    android:textColor="@color/primary_green"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -72,7 +72,7 @@
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:text="Highlands Coffee"
-                        android:textColor="#1D1F20"
+                        android:textColor="@color/text_main"
                         android:textSize="20sp"
                         android:textStyle="bold" />
 
@@ -83,7 +83,7 @@
                         android:layout_marginStart="12dp"
                         android:maxLines="1"
                         android:text="150.000đ"
-                        android:textColor="#006F49"
+                        android:textColor="@color/primary_green"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -94,7 +94,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="32dp"
                 android:text="Đề xuất phù hợp nhất"
-                android:textColor="#1D1F20"
+                android:textColor="@color/text_main"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -138,7 +138,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:text="Phù hợp với hóa đơn"
-                        android:textColor="#DFF5EC"
+                        android:textColor="@color/mint_green"
                         android:textSize="13sp" />
                 </LinearLayout>
 
@@ -170,7 +170,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Cà phê"
-                            android:textColor="#1D1F20"
+                            android:textColor="@color/text_main"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -178,7 +178,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Khớp 85%"
-                            android:textColor="#006F49"
+                            android:textColor="@color/primary_green"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -203,7 +203,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Giao lưu"
-                            android:textColor="#1D1F20"
+                            android:textColor="@color/text_main"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -211,7 +211,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Khớp 40%"
-                            android:textColor="#777777"
+                            android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -223,7 +223,7 @@
                 android:layout_marginTop="34dp"
                 android:gravity="center"
                 android:text="HOẶC"
-                android:textColor="#777777"
+                android:textColor="@color/text_secondary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -238,7 +238,7 @@
                 android:focusable="true"
                 android:gravity="center"
                 android:text="▦  Chọn từ tất cả danh mục"
-                android:textColor="#006F49"
+                android:textColor="@color/primary_green"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
