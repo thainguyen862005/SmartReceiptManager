@@ -1,10 +1,12 @@
 package com.example.smartreceiptmanager.expense;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -12,15 +14,16 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
+import com.bumptech.glide.Glide;
+import com.example.smartreceiptmanager.ProfileActivity;
 import com.example.smartreceiptmanager.R;
+import com.example.smartreceiptmanager.auth.AuthViewModel;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import androidx.lifecycle.ViewModelProvider;
-import com.example.smartreceiptmanager.auth.AuthViewModel;
-
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -39,6 +42,8 @@ public class ExpenseListFragment extends Fragment {
 
     private TextView txtEmpty;
     private LinearLayout layoutAllExpenses;
+    private ImageView imgHeaderAvatar;
+    private View cardHeaderAvatar;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -51,6 +56,15 @@ public class ExpenseListFragment extends Fragment {
 
         txtEmpty = view.findViewById(R.id.txtEmptyExpenseList);
         layoutAllExpenses = view.findViewById(R.id.layoutAllExpenses);
+        imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
+        cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
+
+        if (cardHeaderAvatar != null) {
+            cardHeaderAvatar.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), ProfileActivity.class);
+                startActivity(intent);
+            });
+        }
 
         // Khởi động việc lắng nghe dữ liệu từ Firebase
         loadExpensesFromFirebase();
@@ -63,6 +77,7 @@ public class ExpenseListFragment extends Fragment {
             txtEmpty.setVisibility(View.VISIBLE);
             return;
         }
+
         if (imgHeaderAvatar != null) {
             AuthViewModel authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
             authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
@@ -86,6 +101,10 @@ public class ExpenseListFragment extends Fragment {
                             } catch (Exception ignored) {
                             }
                         }
+                    }
+                }
+            });
+        }
 
         String uid = currentUser.getUid();
         DatabaseReference databaseReference = FirebaseDatabase.getInstance()
@@ -158,6 +177,8 @@ public class ExpenseListFragment extends Fragment {
     }
 
     private void renderExpenses(List<Expense> expenses) {
+        if (txtEmpty == null || layoutAllExpenses == null) return;
+        
         txtEmpty.setVisibility(expenses.isEmpty() ? View.VISIBLE : View.GONE);
         layoutAllExpenses.removeAllViews();
 
@@ -189,7 +210,7 @@ public class ExpenseListFragment extends Fragment {
 
             txtMerchant.setText(expense.getMerchantName());
 
-            // Thay thế hàm getTimeText cũ (hardcode) bằng thời gian thật
+            // Hiển thị thời gian thật
             SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
             String realTime = timeFormat.format(new Date(expense.getDate()));
             txtMeta.setText(realTime + " • " + expense.getCategory());
@@ -197,7 +218,7 @@ public class ExpenseListFragment extends Fragment {
             // Xử lý màu sắc Tiền Thu / Tiền Chi
             if ("Thu nhập".equals(expense.getCategory())) {
                 txtAmount.setText("+ " + CurrencyUtils.formatVnd(expense.getAmount()));
-                txtAmount.setTextColor(getResources().getColor(R.color.primary_green)); // Đảm bảo bạn có màu này trong colors.xml
+                txtAmount.setTextColor(getResources().getColor(R.color.primary_green));
             } else {
                 txtAmount.setText("- " + CurrencyUtils.formatVnd(expense.getAmount()));
                 txtAmount.setTextColor(0xFFB9181E);
@@ -206,7 +227,10 @@ public class ExpenseListFragment extends Fragment {
             // Sự kiện Click để mở màn hình chi tiết
             itemView.setOnClickListener(v -> openExpenseDetail(expense.getId()));
             if(btnDelete != null) {
-                btnDelete.setOnClickListener(v -> openExpenseDetail(expense.getId()));
+                btnDelete.setOnClickListener(v -> {
+                    // Xử lý xóa nếu cần, hoặc cũng mở chi tiết
+                    openExpenseDetail(expense.getId());
+                });
             }
 
             layoutAllExpenses.addView(itemView);
@@ -217,7 +241,7 @@ public class ExpenseListFragment extends Fragment {
         TextView header = new TextView(requireContext());
         header.setText(title);
         header.setTextColor(0xFF435047);
-        header.setTextSize(18); // Chỉnh lại size một chút cho hài hòa
+        header.setTextSize(18);
         header.setTypeface(null, android.graphics.Typeface.BOLD);
         header.setPadding(0, 32, 0, 16);
         return header;
