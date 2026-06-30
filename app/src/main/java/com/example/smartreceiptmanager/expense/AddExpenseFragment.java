@@ -4,7 +4,6 @@ import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,8 +20,17 @@ import com.example.smartreceiptmanager.firestore.SyncManager;
 import com.example.smartreceiptmanager.utils.CurrencyUtils;
 import com.example.smartreceiptmanager.utils.DateUtils;
 
-import java.text.DecimalFormat;
+// THÊM CÁC IMPORT THƯ VIỆN FIREBASE
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
 
 public class AddExpenseFragment extends Fragment {
     private static final String ARG_EXPENSE_ID = "expense_id";
@@ -46,7 +54,6 @@ public class AddExpenseFragment extends Fragment {
     private Expense editingExpense;
     private String selectedCategory = "Ăn uống";
     private long selectedDate = System.currentTimeMillis();
-    private CategorySuggestionEngine suggestionEngine;
 
     public static AddExpenseFragment newEditInstance(String expenseId) {
         AddExpenseFragment fragment = new AddExpenseFragment();
@@ -88,24 +95,15 @@ public class AddExpenseFragment extends Fragment {
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(
+            @NonNull View view,
+            @Nullable Bundle savedInstanceState
+    ) {
         super.onViewCreated(view, savedInstanceState);
+
         expenseStore = new ExpenseStore(requireContext());
-    // xử lý Gợi ý danh mục
-        suggestionEngine = new CategorySuggestionEngine();
-
         edtAmount = view.findViewById(R.id.edtAmount);
-
         edtMerchant = view.findViewById(R.id.edtMerchant);
-        edtMerchant.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                String merchant = edtMerchant.getText().toString().trim();
-                String category = suggestionEngine.suggestCategory(merchant);
-                if (!category.equals("Khác")) {
-                    selectCategory(category);
-                }
-            }
-        });
         edtNote = view.findViewById(R.id.edtNote);
         edtReceiptText = view.findViewById(R.id.edtReceiptText);
         txtScreenTitle = view.findViewById(R.id.txtScreenTitle);
@@ -134,8 +132,6 @@ public class AddExpenseFragment extends Fragment {
         view.findViewById(R.id.layoutDate).setOnClickListener(v -> showDatePicker());
 
         edtAmount.addTextChangedListener(new TextWatcher() {
-            private String current = "";
-
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
@@ -146,22 +142,6 @@ public class AddExpenseFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                if (!s.toString().equals(current)) {
-                    edtAmount.removeTextChangedListener(this);
-                    String cleanString = s.toString().replace(".", "");
-                    if (!cleanString.isEmpty()) {
-                        try{
-                        long value = Long.parseLong(cleanString);
-                        DecimalFormat formatter = new DecimalFormat("#,###");
-                        current = formatter.format(value).replace(",", ".");
-                        edtAmount.setText(current);
-                        edtAmount.setSelection(current.length());
-                    }catch (NumberFormatException e){
-                            Log.e("Amount", "Invalid amount", e);
-                        }
-                    }
-                    edtAmount.addTextChangedListener(this);
-                }
             }
         });
 
@@ -180,16 +160,16 @@ public class AddExpenseFragment extends Fragment {
         cardShopping.setBackgroundResource(R.drawable.bg_category_normal_figma);
         cardBill.setBackgroundResource(R.drawable.bg_category_normal_figma);
 
-        if ("Ăn uống".equals(category)) {
+        if (category.equals("Ăn uống")) {
             cardFood.setSelected(true);
             cardFood.setBackgroundResource(R.drawable.bg_category_selected_figma);
-        } else if ("Di chuyển".equals(category)) {
+        } else if (category.equals("Di chuyển")) {
             cardTransport.setSelected(true);
             cardTransport.setBackgroundResource(R.drawable.bg_category_selected_figma);
-        } else if ("Mua sắm".equals(category)) {
+        } else if (category.equals("Mua sắm")) {
             cardShopping.setSelected(true);
             cardShopping.setBackgroundResource(R.drawable.bg_category_selected_figma);
-        } else if ("Hóa đơn".equals(category)) {
+        } else if (category.equals("Hóa đơn")) {
             cardBill.setSelected(true);
             cardBill.setBackgroundResource(R.drawable.bg_category_selected_figma);
         }
@@ -207,7 +187,7 @@ public class AddExpenseFragment extends Fragment {
             btnSave.setText("Cập nhật ✓");
             btnDelete.setVisibility(View.VISIBLE);
 
-            edtAmount.setText(CurrencyUtils.formatAmount(editingExpense.getAmount()));
+            edtAmount.setText(String.valueOf((long) editingExpense.getAmount()));
             edtMerchant.setText(editingExpense.getMerchantName());
             edtNote.setText(editingExpense.getNote());
             edtReceiptText.setText(editingExpense.getReceiptText());
@@ -227,14 +207,10 @@ public class AddExpenseFragment extends Fragment {
                 String category = args.getString(ARG_CATEGORY, "Ăn uống");
 
                 edtMerchant.setText(merchant);
-                if (!merchant.isEmpty()) {
-                    if(category.equals("Khác")){
-                        category=suggestionEngine.suggestCategory(merchant);
-                    }
-                }
 
                 if (amount > 0) {
-                    edtAmount.setText(CurrencyUtils.formatAmount(amount));                }
+                    edtAmount.setText(String.valueOf((long) amount));
+                }
 
                 if (date > 0) {
                     selectedDate = date;
@@ -273,13 +249,12 @@ public class AddExpenseFragment extends Fragment {
     private void updateDateText() {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(selectedDate);
-        txtDate.setText(DateUtils.formatDate(selectedDate));
+        txtDate.setText("Hôm nay, " + calendar.get(Calendar.DAY_OF_MONTH)
+                + " Th" + (calendar.get(Calendar.MONTH) + 1)
+                + " " + calendar.get(Calendar.YEAR));
     }
 
     private void saveExpense() {
-        //fix bug
-//        Log.d("test:", "Đã vào saveExpense()");
-//        Toast.makeText(requireContext(),"Đã bấm Lưu",Toast.LENGTH_SHORT).show();
         String amountText = edtAmount.getText().toString().trim();
         String merchant = edtMerchant.getText().toString().trim();
         String note = edtNote.getText().toString().trim();
@@ -290,27 +265,14 @@ public class AddExpenseFragment extends Fragment {
             return;
         }
 
-        if (merchant.isEmpty()) {
-            edtMerchant.setError("Vui lòng nhập nơi chi tiêu");
-            edtMerchant.requestFocus();
-            return;
-        }
-        if (selectedCategory == null ||
-                selectedCategory.trim().isEmpty()) {
-            Toast.makeText(getContext(), "Vui lòng chọn danh mục", Toast.LENGTH_SHORT).show();
-            return;
-        }
-       // Duplicate Check
         double amount = CurrencyUtils.parseAmount(amountText);
-
         if (amount <= 0) {
             Toast.makeText(requireContext(), "Số tiền không hợp lệ", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (editingExpense == null && expenseStore.isDuplicate(merchant, amount, selectedDate)) {
-            Toast.makeText(requireContext(), "Giao dịch đã tồn tại", Toast.LENGTH_SHORT).show();
-            return;
+        if (merchant.isEmpty()) {
+            merchant = note.isEmpty() ? selectedCategory : note;
         }
 
         Expense expense = editingExpense == null ? new Expense() : editingExpense;
@@ -321,9 +283,13 @@ public class AddExpenseFragment extends Fragment {
         expense.setNote(note);
         expense.setReceiptText(receiptText);
 
-        expense.setSynced(false);
+        // 1. Lưu vào SQLite cục bộ
         expenseStore.saveExpense(expense);
-        // Trigger sync lên Firestore ngay sau khi lưu local
+
+        // 2. TỰ ĐỘNG ĐẨY LÊN FIREBASE REALTIME DATABASE (THEO TỪNG USER RIÊNG BIỆT)
+        saveExpenseToRealtimeDatabase(expense);
+
+        // 3. Trigger sync lên Firestore ngay sau khi lưu local
         SyncManager.getInstance(requireContext()).syncSingleExpense(expense);
 
         String message = editingExpense == null ? "Đã lưu khoản chi" : "Đã cập nhật khoản chi";
@@ -337,9 +303,94 @@ public class AddExpenseFragment extends Fragment {
             return;
         }
 
-        expenseStore.deleteExpense(editingExpense.getId());
-        SyncManager.getInstance(requireContext()).deleteExpenseFromFirestore(editingExpense.getId());        Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show();
+        String idToDelete = editingExpense.getId();
+
+        // 1. Xóa ở cục bộ SQLite
+        expenseStore.deleteExpense(idToDelete);
+
+        // 2. XÓA TRÊN FIREBASE REALTIME DATABASE CỦA USER ĐÓ
+        deleteExpenseFromRealtimeDatabase(idToDelete);
+
+        Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show();
         closeScreen();
+    }
+
+    /**
+     * Hàm lấy mã login hiện tại và đẩy dữ liệu lên Firebase
+     */
+    private void saveExpenseToRealtimeDatabase(Expense expense) {
+        // 1. Check tài khoản hiện tại trên Firebase
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (currentUser != null) {
+            // 2. Lấy mã login (UID) của user đang dùng app
+            String uid = currentUser.getUid();
+
+            // 3. Trỏ thẳng vào nhánh: User_Profiles -> transactions -> [Mã login hiện tại]
+            DatabaseReference databaseReference = FirebaseDatabase.getInstance()
+                    .getReference("User_Profiles")
+                    .child("transactions")
+                    .child(uid);
+
+            // 4. Lấy ID giao dịch cũ (nếu đang sửa) hoặc tự tạo ID mới (nếu thêm mới)
+            String transactionId = expense.getId();
+            if (transactionId == null || transactionId.isEmpty()) {
+                transactionId = databaseReference.push().getKey();
+                if (transactionId != null) {
+                    expense.setId(transactionId);
+                }
+            }
+
+            if (transactionId == null) return; // Nếu lỗi không tạo được mã thì dừng
+
+            // Định dạng thời gian
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            String dateStr = sdf.format(new Date(expense.getDate()));
+
+            // Gom dữ liệu để đẩy lên
+            HashMap<String, Object> transactionMap = new HashMap<>();
+            transactionMap.put("amount", expense.getAmount());
+            transactionMap.put("created_at", System.currentTimeMillis());
+            transactionMap.put("note", expense.getNote() != null ? expense.getNote() : "");
+            transactionMap.put("payment_method", "Tiền mặt");
+            transactionMap.put("receipt_image_url", "");
+            transactionMap.put("transaction_date", dateStr);
+            transactionMap.put("type", "expense");
+            transactionMap.put("wallet_id", "wallet_default_01");
+
+            // Danh mục con
+            HashMap<String, String> categoryMap = new HashMap<>();
+            categoryMap.put("id", "cate_expense_" + expense.getCategory().hashCode());
+            categoryMap.put("name", expense.getCategory());
+            transactionMap.put("category", categoryMap);
+
+            // 5. Lưu dữ liệu lên Firebase
+            databaseReference.child(transactionId).setValue(transactionMap);
+
+        } else {
+            // Dự phòng trường hợp lỗi (app bị mất phiên đăng nhập ngầm)
+            Toast.makeText(requireContext(), "Lỗi: Không tìm thấy thông tin đăng nhập!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Hàm lấy mã login hiện tại và xóa giao dịch tương ứng
+     */
+    private void deleteExpenseFromRealtimeDatabase(String transactionId) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (currentUser != null && transactionId != null && !transactionId.isEmpty()) {
+            // Lấy mã login (UID)
+            String uid = currentUser.getUid();
+
+            // Trỏ đúng vào nhánh của mã login hiện tại và xóa
+            FirebaseDatabase.getInstance()
+                    .getReference("User_Profiles")
+                    .child("transactions")
+                    .child(uid)
+                    .child(transactionId)
+                    .removeValue();
+        }
     }
 
     private void closeScreen() {

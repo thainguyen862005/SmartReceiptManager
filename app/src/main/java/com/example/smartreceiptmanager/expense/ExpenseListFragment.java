@@ -1,39 +1,55 @@
 package com.example.smartreceiptmanager.expense;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.example.smartreceiptmanager.R;
-import com.example.smartreceiptmanager.utils.CurrencyUtils;
-import com.example.smartreceiptmanager.utils.DateUtils;
-import android.content.Intent;
-import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.example.smartreceiptmanager.ProfileActivity;
+import com.example.smartreceiptmanager.R;
+import com.example.smartreceiptmanager.auth.AuthViewModel;
+import com.example.smartreceiptmanager.utils.CurrencyUtils;
+import com.example.smartreceiptmanager.utils.DateUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class ExpenseListFragment extends Fragment {
-    private ExpenseStore expenseStore;
+
     private TextView txtEmpty;
     private LinearLayout layoutAllExpenses;
     private EditText edtSearchExpense;
+    private ImageView imgHeaderAvatar;
+    private View cardHeaderAvatar;
     private String searchQuery = "";
+    private List<Expense> allExpenses = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -44,39 +60,26 @@ public class ExpenseListFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        expenseStore = new ExpenseStore(requireContext());
         txtEmpty = view.findViewById(R.id.txtEmptyExpenseList);
         layoutAllExpenses = view.findViewById(R.id.layoutAllExpenses);
         edtSearchExpense = view.findViewById(R.id.edtSearchExpense);
+        imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
+        cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
 
-        // Đã xóa dòng setOnClickListener của nút btnAddExpenseHistory vì nút đã bị xóa bên XML
-
-        View cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
-        ImageView imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
         if (cardHeaderAvatar != null) {
             cardHeaderAvatar.setOnClickListener(v -> {
                 Intent intent = new Intent(requireContext(), ProfileActivity.class);
                 startActivity(intent);
             });
         }
-        if (imgHeaderAvatar != null) {
-            FirebaseAuth.getInstance().addAuthStateListener(firebaseAuth -> {
-                FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
-                if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
-                    Glide.with(this)
-                            .load(firebaseUser.getPhotoUrl())
-                            .placeholder(android.R.drawable.sym_def_app_icon)
-                            .circleCrop()
-                            .into(imgHeaderAvatar);
-                }
-            });
-        }
 
         setupSearch();
-        renderExpenses();
+        loadExpensesFromFirebase();
     }
 
     private void setupSearch() {
+        if (edtSearchExpense == null) return;
+
         edtSearchExpense.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -94,19 +97,119 @@ public class ExpenseListFragment extends Fragment {
         });
     }
 
+    private void loadExpensesFromFirebase() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(requireContext(), "Vui lòng đăng nhập", Toast.LENGTH_SHORT).show();
+            allExpenses = new ArrayList<>();
+            renderExpenses();
+            return;
+        }
+
+        if (imgHeaderAvatar != null) {
+            AuthViewModel authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
+            authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
+                if (userProfile != null && userProfile.getProfile() != null) {
+                    String avatarUrl = userProfile.getProfile().getAvatar_url();
+                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                        if (avatarUrl.startsWith("http")) {
+                            Glide.with(this)
+                                    .load(avatarUrl)
+                                    .placeholder(android.R.drawable.sym_def_app_icon)
+                                    .circleCrop()
+                                    .into(imgHeaderAvatar);
+                        } else {
+                            try {
+                                byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
+                                Glide.with(this)
+                                        .load(bytes)
+                                        .placeholder(android.R.drawable.sym_def_app_icon)
+                                        .circleCrop()
+                                        .into(imgHeaderAvatar);
+                            } catch (Exception ignored) {
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        String uid = currentUser.getUid();
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance()
+                .getReference("User_Profiles")
+                .child("transactions")
+                .child(uid);
+
+        databaseReference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (layoutAllExpenses == null) return;
+
+                List<Expense> expenses = new ArrayList<>();
+                if (snapshot.exists() && snapshot.hasChildren()) {
+                    for (DataSnapshot data : snapshot.getChildren()) {
+                        Expense expense = new Expense();
+                        expense.setId(data.getKey());
+
+                        Double amount = data.child("amount").getValue(Double.class);
+                        expense.setAmount(amount != null ? amount : 0);
+
+                        String note = data.child("note").getValue(String.class);
+                        expense.setNote(note != null ? note : "");
+
+                        DataSnapshot categorySnap = data.child("category");
+                        String categoryName = "Khác";
+                        if (categorySnap.exists()) {
+                            String name = categorySnap.child("name").getValue(String.class);
+                            if (name != null) categoryName = name;
+                        }
+                        expense.setCategory(categoryName);
+
+                        if (note != null && !note.trim().isEmpty()) {
+                            expense.setMerchantName(note);
+                        } else {
+                            expense.setMerchantName(categoryName);
+                        }
+
+                        String type = data.child("type").getValue(String.class);
+                        if ("income".equals(type)) {
+                            expense.setCategory("Thu nhập");
+                        }
+
+                        String dateStr = data.child("transaction_date").getValue(String.class);
+                        expense.setDate(parseDateStringToLong(dateStr));
+
+                        expenses.add(expense);
+                    }
+                }
+
+                Collections.sort(expenses, (e1, e2) -> Long.compare(e2.getDate(), e1.getDate()));
+                allExpenses = expenses;
+                renderExpenses();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("Firebase", "Lỗi tải dữ liệu: " + error.getMessage());
+            }
+        });
+    }
+
     private void renderExpenses() {
-        List<Expense> savedExpenses = expenseStore.getAllExpenses();
-        List<Expense> expenses = savedExpenses.isEmpty() ? getPreviewExpenses() : savedExpenses;
-        List<Expense> filteredExpenses = filterExpenses(expenses);
+        if (txtEmpty == null || layoutAllExpenses == null) return;
+
+        List<Expense> expenses = filterExpenses(allExpenses);
         txtEmpty.setText(searchQuery.isEmpty() ? "Chưa có dữ liệu chi tiêu." : "Không tìm thấy giao dịch phù hợp.");
-        txtEmpty.setVisibility(filteredExpenses.isEmpty() ? View.VISIBLE : View.GONE);
+        txtEmpty.setVisibility(expenses.isEmpty() ? View.VISIBLE : View.GONE);
         layoutAllExpenses.removeAllViews();
+
+        if (expenses.isEmpty()) return;
 
         LayoutInflater inflater = LayoutInflater.from(requireContext());
         String currentGroup = "";
-        for (int index = 0; index < filteredExpenses.size(); index++) {
-            Expense expense = filteredExpenses.get(index);
-            String group = getGroupTitle(expense, index);
+
+        for (Expense expense : expenses) {
+            String group = DateUtils.formatDate(expense.getDate());
             if (!group.equals(currentGroup)) {
                 currentGroup = group;
                 layoutAllExpenses.addView(createGroupHeader(group));
@@ -122,7 +225,10 @@ public class ExpenseListFragment extends Fragment {
             txtIcon.setText(getCategoryIcon(expense.getCategory()));
             txtIcon.setBackgroundResource(getCategoryBackground(expense.getCategory()));
             txtMerchant.setText(expense.getMerchantName());
-            txtMeta.setText(getTimeText(expense, index) + " • " + expense.getCategory());
+
+            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            String realTime = timeFormat.format(new Date(expense.getDate()));
+            txtMeta.setText(realTime + " • " + expense.getCategory());
 
             if ("Thu nhập".equals(expense.getCategory())) {
                 txtAmount.setText("+ " + CurrencyUtils.formatVnd(expense.getAmount()));
@@ -133,7 +239,9 @@ public class ExpenseListFragment extends Fragment {
             }
 
             itemView.setOnClickListener(v -> openExpenseDetail(expense.getId()));
-            btnDelete.setOnClickListener(v -> openExpenseDetail(expense.getId()));
+            if (btnDelete != null) {
+                btnDelete.setOnClickListener(v -> openExpenseDetail(expense.getId()));
+            }
 
             layoutAllExpenses.addView(itemView);
         }
@@ -172,9 +280,9 @@ public class ExpenseListFragment extends Fragment {
         TextView header = new TextView(requireContext());
         header.setText(title);
         header.setTextColor(0xFF435047);
-        header.setTextSize(22);
+        header.setTextSize(18);
         header.setTypeface(null, android.graphics.Typeface.BOLD);
-        header.setPadding(0, 18, 0, 14);
+        header.setPadding(0, 32, 0, 16);
         return header;
     }
 
@@ -192,43 +300,13 @@ public class ExpenseListFragment extends Fragment {
         }
     }
 
-    private List<Expense> getPreviewExpenses() {
-        long now = System.currentTimeMillis();
-        List<Expense> expenses = new ArrayList<>();
-        expenses.add(new Expense("preview-h1", "Ăn trưa Highland", 150000, "Ăn uống", now, "", "", false, now, now));
-        expenses.add(new Expense("preview-h2", "Grab bi làm", 45000, "Di chuyển", now, "", "", false, now, now));
-        expenses.add(new Expense("preview-h3", "Lương tháng 9", 15000000, "Thu nhập", now - 86400000, "", "", false, now, now));
-        expenses.add(new Expense("preview-h4", "Siêu thị Winmart", 320000, "Sinh hoạt", now - 86400000, "", "", false, now, now));
-        return expenses;
-    }
-
-    private String getGroupTitle(Expense expense, int index) {
-        return DateUtils.formatDate(expense.getDate());
-    }
-
-    private String getTimeText(Expense expense, int index) {
-        if (index == 0) return "12:30";
-        if (index == 1) return "08:15";
-        if (index == 2) return "15:00";
-        if (index == 3) return "19:45";
-        return DateUtils.formatDate(expense.getDate());
-    }
-
     private String getCategoryIcon(String category) {
-        if ("Ăn uống".equals(category)) {
-            return "🍴";
-        } else if ("Di chuyển".equals(category)) {
-            return "🚗";
-        } else if ("Mua sắm".equals(category)) {
-            return "🛍";
-        } else if ("Hóa đơn".equals(category)) {
-            return "🧾";
-        } else if ("Thu nhập".equals(category)) {
-            return "💵";
-        } else if ("Sinh hoạt".equals(category)) {
-            return "🛍";
-        }
-
+        if ("Ăn uống".equals(category)) return "🍴";
+        if ("Di chuyển".equals(category)) return "🚗";
+        if ("Mua sắm".equals(category)) return "🛍";
+        if ("Hóa đơn".equals(category)) return "🧾";
+        if ("Thu nhập".equals(category)) return "💵";
+        if ("Sinh hoạt".equals(category)) return "🛍";
         return "💸";
     }
 
@@ -240,7 +318,17 @@ public class ExpenseListFragment extends Fragment {
         } else if ("Sinh hoạt".equals(category)) {
             return R.drawable.bg_avatar_mint;
         }
-
         return R.drawable.bg_avatar_gray;
+    }
+
+    private long parseDateStringToLong(String dateStr) {
+        if (dateStr == null) return System.currentTimeMillis();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        try {
+            Date date = sdf.parse(dateStr);
+            return date != null ? date.getTime() : System.currentTimeMillis();
+        } catch (ParseException e) {
+            return System.currentTimeMillis();
+        }
     }
 }

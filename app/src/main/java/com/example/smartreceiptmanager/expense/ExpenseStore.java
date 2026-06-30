@@ -8,9 +8,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ExpenseStore {
@@ -182,7 +185,8 @@ public class ExpenseStore {
             for (Expense expense : expenses) {
                 array.put(toJson(expense));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         preferences.edit().putString(KEY_EXPENSES, array.toString()).commit();
     }
 
@@ -245,16 +249,17 @@ public class ExpenseStore {
     }
 
     //tránh lưu trùng 2 lần
-    public boolean isDuplicate(String merchant,double amount,long date){
+    public boolean isDuplicate(String merchant, double amount, long date) {
         merchant = merchant.trim();
-        for(Expense e:getAllExpenses()){
-            String oldMerchant = e.getMerchantName()==null ? "" : e.getMerchantName().trim();
-            if(oldMerchant.equalsIgnoreCase(merchant) && Math.abs(e.getAmount()-amount)<0.01 && sameDay(e.getDate(),date)){
+        for (Expense e : getAllExpenses()) {
+            String oldMerchant = e.getMerchantName() == null ? "" : e.getMerchantName().trim();
+            if (oldMerchant.equalsIgnoreCase(merchant) && Math.abs(e.getAmount() - amount) < 0.01 && sameDay(e.getDate(), date)) {
                 return true;
             }
         }
         return false;
     }
+
     private boolean sameDay(long first, long second) {
         java.util.Calendar c1 = java.util.Calendar.getInstance();
         java.util.Calendar c2 = java.util.Calendar.getInstance();
@@ -262,5 +267,80 @@ public class ExpenseStore {
         c2.setTimeInMillis(second);
         return c1.get(java.util.Calendar.YEAR) == c2.get(java.util.Calendar.YEAR)
                 && c1.get(java.util.Calendar.DAY_OF_YEAR) == c2.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+
+    // Lấy danh sách chi tiêu theo khoảng thời gian
+    public List<Expense> getExpensesBetween(long start, long end) {
+        List<Expense> result = new ArrayList<>();
+        for (Expense expense : getAllExpenses()) {
+            boolean isAfterStart = expense.getDate() >= start;
+            boolean isBeforeEnd = expense.getDate() <= end;
+
+            if (isAfterStart && isBeforeEnd) {
+                result.add(expense);
+            }
+        }
+
+        return result;
+    }
+
+    //Tính tổng tiền
+    public double getTotalAmount(long start, long end) {
+        double total = 0;
+        for (Expense expense : getExpensesBetween(start, end)) {
+            total += expense.getAmount();
+        }
+        return total;
+    }
+
+    //Tổng tiền năm hiện tại
+    public double getCurrentYearTotal() {
+        //Lấy năm hiện tại
+        Calendar now = Calendar.getInstance();
+        int currentYear = now.get(Calendar.YEAR);
+        double total = 0;
+        // Khởi tạo Calendar kiểm tra một lần duy nhất ở ngoài vòng lặp
+        Calendar expenseCalendar = Calendar.getInstance();
+
+        for (Expense expense : getAllExpenses()) {
+            // Tái sử dụng expenseCalendar, chỉ thay đổi thời gian bên trong nó
+            expenseCalendar.setTimeInMillis(expense.getDate());
+
+            //So sánh và cộng dồn
+            if (expenseCalendar.get(Calendar.YEAR) == currentYear) {
+                total += expense.getAmount();
+            }
+        }
+
+        return total;
+    }
+
+    //tỏng tiền 3 tháng gần nhất
+    public double getLast3MonthsTotal() {
+        Calendar start = Calendar.getInstance();
+        start.add(Calendar.MONTH, -2);
+        start.set(Calendar.DAY_OF_MONTH, 1);
+
+        long from = start.getTimeInMillis();
+        long to = System.currentTimeMillis();
+
+        return getTotalAmount(from, to);
+    }
+
+    public List<Expense> getCurrentMonthExpenses() {
+        List<Expense> result = new ArrayList<>();
+        Calendar now = Calendar.getInstance();
+        int month = now.get(Calendar.MONTH);
+        int year = now.get(Calendar.YEAR);
+
+        for (Expense expense : getAllExpenses()) {
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(expense.getDate());
+
+            if (c.get(Calendar.MONTH) == month && c.get(Calendar.YEAR) == year) {
+                result.add(expense);
+            }
+        }
+        return result;
     }
 }

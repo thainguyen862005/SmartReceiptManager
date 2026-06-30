@@ -20,6 +20,7 @@ import java.util.Calendar;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import com.example.smartreceiptmanager.utils.NotificationReceiver;
+import com.example.smartreceiptmanager.auth.UserProfile;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -49,22 +50,41 @@ public class ProfileActivity extends AppCompatActivity {
     private void setupProfileData() {
         authViewModel.getUserLiveData().observe(this, firebaseUser -> {
             if (firebaseUser != null) {
-                // Hiển thị thông tin động lấy từ Firebase
-                binding.tvName.setText(firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng Pro");
                 binding.tvEmail.setText(firebaseUser.getEmail());
-
-                if (firebaseUser.getPhotoUrl() != null) {
-                    Glide.with(this)
-                            .load(firebaseUser.getPhotoUrl())
-                            .placeholder(android.R.drawable.sym_def_app_icon)
-                            .circleCrop()
-                            .into(binding.imgAvatar);
-                }
             } else {
                 Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 finish();
+            }
+        });
+
+        authViewModel.getUserProfileLiveData().observe(this, userProfile -> {
+            if (userProfile != null) {
+                if (userProfile.getProfile() != null) {
+                    binding.tvName.setText(userProfile.getProfile().getFull_name() != null && !userProfile.getProfile().getFull_name().isEmpty() 
+                            ? userProfile.getProfile().getFull_name() : "Người dùng Pro");
+                    String avatarUrl = userProfile.getProfile().getAvatar_url();
+                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                        if (avatarUrl.startsWith("http")) {
+                            Glide.with(this)
+                                    .load(avatarUrl)
+                                    .placeholder(android.R.drawable.sym_def_app_icon)
+                                    .circleCrop()
+                                    .into(binding.imgAvatar);
+                        } else {
+                            try {
+                                byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
+                                Glide.with(this)
+                                        .load(bytes)
+                                        .placeholder(android.R.drawable.sym_def_app_icon)
+                                        .circleCrop()
+                                        .into(binding.imgAvatar);
+                            } catch (Exception ignored) {
+                            }
+                        }
+                    }
+                }
             }
         });
     }
@@ -177,23 +197,27 @@ public class ProfileActivity extends AppCompatActivity {
 
 
     private void uploadAvatar(Uri uri) {
-        com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
-        Toast.makeText(this, "Đang tải ảnh lên...", Toast.LENGTH_SHORT).show();
-        String uid = user.getUid();
-        StorageReference storageRef = FirebaseStorage.getInstance().getReference();
-        StorageReference avatarRef = storageRef.child("avatars/" + uid + ".jpg");
-        avatarRef.putFile(uri)
-                .addOnSuccessListener(taskSnapshot -> {
-                    avatarRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
-                        String downloadUrl = downloadUri.toString();
-                        authViewModel.updateAvatar(downloadUrl);
-                        Toast.makeText(ProfileActivity.this, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT).show();
-                    });
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(ProfileActivity.this, "Tải ảnh thất bại: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        try {
+            android.graphics.Bitmap bitmap = android.provider.MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+            if (bitmap == null) return;
+
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            float maxRatio = 120f / Math.max(width, height);
+            if (maxRatio < 1) {
+                bitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, (int)(width * maxRatio), (int)(height * maxRatio), true);
+            }
+
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream);
+            byte[] bytes = outputStream.toByteArray();
+            String base64Image = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT);
+
+            authViewModel.updateAvatar(base64Image);
+            Toast.makeText(this, "Cập nhật ảnh đại diện thành công", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Lỗi xử lý ảnh: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showUpdateNameDialog() {
