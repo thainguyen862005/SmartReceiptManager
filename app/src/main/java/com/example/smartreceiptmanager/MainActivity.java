@@ -12,7 +12,9 @@ import com.example.smartreceiptmanager.statistics.StatisticsFragment;
 import com.example.smartreceiptmanager.expense.ExpenseListFragment;
 import com.example.smartreceiptmanager.home.HomeFragment;
 import com.example.smartreceiptmanager.scanbill.ScanBillFragment;
-import com.example.smartreceiptmanager.expense.AddExpenseFragment; // Thêm import này
+import com.example.smartreceiptmanager.expense.AddExpenseFragment;
+import com.example.smartreceiptmanager.firestore.SyncManager;
+import androidx.core.content.ContextCompat;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -84,6 +86,13 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Mỗi khi app vào foreground, thử sync các expense chưa được đồng bộ
+        SyncManager.getInstance(this).syncPendingIfOnline();
+    }
+
     private void chuyenFragment(Fragment fragment) {
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, fragment)
@@ -106,8 +115,8 @@ public class MainActivity extends AppCompatActivity {
         TextView txtQRScan = findViewById(R.id.txtQRScan);
         TextView txtStatistics = findViewById(R.id.txtStatistics);
 
-        int activeColor = Color.parseColor("#007A4D");
-        int normalColor = Color.parseColor("#333333");
+        int activeColor = ContextCompat.getColor(this, R.color.primary_green);
+        int normalColor = ContextCompat.getColor(this, R.color.text_secondary);
 
         layoutHome.setBackgroundResource(R.drawable.bg_bottom_nav_normal);
         layoutHistory.setBackgroundResource(R.drawable.bg_bottom_nav_normal);
