@@ -293,63 +293,6 @@ public class ExpenseStore {
         return total;
     }
 
-    // Tổng tiền tuừng danh mục
-    public Map<String, Double> getCategoryTotals(long start, long end) {
-        Map<String, Double> result = new LinkedHashMap<>();
-
-        for (Expense expense : getExpensesBetween(start, end)) {
-            String category = expense.getCategory();
-            double amount = expense.getAmount();
-
-            // Kiểm tra xem danh mục này đã từng được thêm vào Map chưa
-            if (result.containsKey(category)) {
-                // Nếu đã có=> lấy số tiền cũ ra + số tiền mới
-                double oldAmount = result.get(category);
-                result.put(category, oldAmount + amount);
-            } else {
-                // Nếu chưa có => thêm mới danh mục vào Map với số tiền hiện tại
-                result.put(category, amount);
-            }
-        }
-
-        return result;
-    }
-
-    //dếm số giao dịch mỗi danh mục
-    public Map<String, Integer> getCategoryCounts(long start, long end) {
-        Map<String, Integer> result = new LinkedHashMap<>();
-
-        for (Expense expense : getExpensesBetween(start, end)) {
-            String category = expense.getCategory();
-
-            // Nếu danh mục đã có trong Map, ta lấy số đếm hiện tại + 1
-            if (result.containsKey(category)) {
-                int currentCount = result.get(category);
-                result.put(category, currentCount + 1);
-            } else {
-                // Nếu đây là mới ghi nhận số lượng là 1
-                result.put(category, 1);
-            }
-        }
-        return result;
-    }
-
-    //chi tiêu ừng ngày
-    public Map<Integer, Double> getDailyTotals(long start, long end) {
-        Map<Integer, Double> result = new LinkedHashMap<>();
-
-        for (Expense expense : getExpensesBetween(start, end)) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(expense.getDate());
-
-            int day = calendar.get(Calendar.DAY_OF_MONTH);
-            double old = result.containsKey(day) ? result.get(day) : 0;
-            result.put(day, old + expense.getAmount());
-        }
-
-        return result;
-    }
-
     //Tổng tiền năm hiện tại
     public double getCurrentYearTotal() {
         //Lấy năm hiện tại

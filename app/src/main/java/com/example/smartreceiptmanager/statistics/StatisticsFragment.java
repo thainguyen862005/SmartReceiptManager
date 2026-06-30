@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.smartreceiptmanager.R;
@@ -25,23 +26,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
-import androidx.core.content.ContextCompat;
-
 import com.github.mikephil.charting.charts.PieChart;
-import com.github.mikephil.charting.data.PieData;
-import com.github.mikephil.charting.data.PieDataSet;
-import com.github.mikephil.charting.data.PieEntry;
-import android.graphics.Color;
 
 public class StatisticsFragment extends Fragment {
 
     private ExpenseStore expenseStore;
-    private TextView tvTotalExpense;
     private TextView tvFoodPercent;
     private TextView tvTransportPercent;
     private TextView tvShoppingPercent;
@@ -83,28 +72,29 @@ public class StatisticsFragment extends Fragment {
         pieChart = view.findViewById(R.id.pieChart);
 
         //3 tab filter
-        tabMonth=view.findViewById(R.id.tabMonth);
-        tab3Months=view.findViewById(R.id.tab3Months);
-        tabYear=view.findViewById(R.id.tabYear);
+        tabMonth = view.findViewById(R.id.tabMonth);
+        tab3Months = view.findViewById(R.id.tab3Months);
+        tabYear = view.findViewById(R.id.tabYear);
 
         //add clickListener
-        tabMonth.setOnClickListener(v->{
-            currentFilter=FILTER_MONTH;
+        tabMonth.setOnClickListener(v -> {
+            currentFilter = FILTER_MONTH;
             refreshStatistics();
         });
 
-        tab3Months.setOnClickListener(v->{
-            currentFilter=FILTER_3_MONTHS;
+        tab3Months.setOnClickListener(v -> {
+            currentFilter = FILTER_3_MONTHS;
             refreshStatistics();
         });
 
-        tabYear.setOnClickListener(v->{
-            currentFilter=FILTER_YEAR;
+        tabYear.setOnClickListener(v -> {
+            currentFilter = FILTER_YEAR;
             refreshStatistics();
         });
+        refreshStatistics();
     }
 
-    private void refreshStatistics(){
+    private void refreshStatistics() {
         List<Expense> expenses = getFilteredExpenses();
 
         renderTopCategories(expenses);
@@ -112,6 +102,7 @@ public class StatisticsFragment extends Fragment {
         renderPieChart(expenses);
         renderWeekChart(expenses);
 
+        updateTabUI();
     }
 
     // lấy data theo tab filter
@@ -128,9 +119,10 @@ public class StatisticsFragment extends Fragment {
                 Calendar start = Calendar.getInstance();
                 start.set(Calendar.MONTH, Calendar.JANUARY);
                 start.set(Calendar.DAY_OF_MONTH, 1);
-                start.set(Calendar.HOUR_OF_DAY,0);
-                start.set(Calendar.MINUTE,0);
-                start.set(Calendar.SECOND,0);
+                start.set(Calendar.HOUR_OF_DAY, 0);
+                start.set(Calendar.MINUTE, 0);
+                start.set(Calendar.SECOND, 0);
+                start.set(Calendar.MILLISECOND,0);
 
                 return expenseStore.getExpensesBetween(start.getTimeInMillis(), System.currentTimeMillis());
             }
@@ -162,6 +154,9 @@ public class StatisticsFragment extends Fragment {
                 amountMap.put(category, amountMap.get(category) + amount);
                 countMap.put(category, countMap.get(category) + 1);
             }
+        }
+        if(totalAmount==0){
+            return;
         }
         //sắp xếp Toptheo số tiền giảm dần
         List<Map.Entry<String, Double>> sortedList = new ArrayList<>(amountMap.entrySet());
@@ -209,7 +204,7 @@ public class StatisticsFragment extends Fragment {
         container.addView(item);
     }
 
-    private void renderCategorySummary(List<Expense> expenses){
+    private void renderCategorySummary(List<Expense> expenses) {
         double total = 0;
         double food = 0;
         double transport = 0;
@@ -232,7 +227,7 @@ public class StatisticsFragment extends Fragment {
                     other += expense.getAmount();
             }
         }
-        tvTotalExpense.setText("Tổng\n" + CurrencyUtils.formatVnd(total));
+//        tvTotalExpense.setText("Tổng\n" + CurrencyUtils.formatVnd(total));
         if (total == 0) {
             tvFoodPercent.setText("● Ăn uống 0%");
             tvTransportPercent.setText("● Di chuyển 0%");
@@ -247,7 +242,7 @@ public class StatisticsFragment extends Fragment {
         tvOtherPercent.setText("● Khác " + (int) (other * 100 / total) + "%");
     }
 
-    private void renderWeekChart(List<Expense> expenses){
+    private void renderWeekChart(List<Expense> expenses) {
         float[] total = new float[7];
         Calendar today = Calendar.getInstance();
         resetTime(today);
@@ -257,68 +252,14 @@ public class StatisticsFragment extends Fragment {
             resetTime(c);
 
             long diffMillis = today.getTimeInMillis() - c.getTimeInMillis();
-            int diff = (int)(diffMillis / (24*60*60*1000));
+            int diff = (int) (diffMillis / (24 * 60 * 60 * 1000));
 
             if (diff >= 0 && diff < 7) {
                 total[6 - diff] += expense.getAmount();
             }
         }
 
-        ArrayList<BarEntry> entries = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            entries.add(new BarEntry(i, total[i]));
-        }
-
-        //cấu hình display cho barChart
-        BarDataSet dataSet = new BarDataSet(entries, "Chi tiêu");
-        dataSet.setColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
-        dataSet.setValueTextSize(10f);
-        dataSet.setValueTextColor(ContextCompat.getColor(requireContext(), R.color.text_main));
-        dataSet.setHighlightEnabled(false);
-        BarData data = new BarData(dataSet);
-        data.setBarWidth(0.55f);
-
-        barChartWeek.setFitBars(true);
-        barChartWeek.setData(data);
-
-        String[] days = {"T-6", "T-5", "T-4", "T-3", "T-2", "Hôm qua", "Hôm nay"};
-
-        //trục XAxis trái
-        XAxis xAxis = barChartWeek.getXAxis();
-        barChartWeek.getAxisLeft().setAxisMinimum(0f);
-        barChartWeek.getAxisLeft().setDrawGridLines(true);
-        barChartWeek.getAxisLeft().setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-        barChartWeek.getAxisLeft().setTextSize(10f);
-
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(days));
-        xAxis.setGranularity(1f);
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setDrawGridLines(false);
-        xAxis.setDrawAxisLine(false);
-        xAxis.setLabelCount(7);
-        xAxis.setCenterAxisLabels(false);
-        xAxis.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-        xAxis.setTextSize(11f);
-
-        //trục XAxis phải
-        barChartWeek.getAxisRight().setEnabled(false);
-        barChartWeek.getDescription().setEnabled(false);
-        barChartWeek.getLegend().setEnabled(false);
-        barChartWeek.animateXY(1000,800);
-        barChartWeek.invalidate();
-
-        //disable zoom dashboard
-        barChartWeek.setScaleEnabled(false);
-        barChartWeek.setPinchZoom(false);
-        barChartWeek.setDoubleTapToZoomEnabled(false);
-        barChartWeek.setDragEnabled(false);
-        barChartWeek.setTouchEnabled(false);
-
-        //khoảng cách từ viền
-        barChartWeek.setExtraBottomOffset(8f);
-        barChartWeek.setExtraTopOffset(10f);
-        barChartWeek.setExtraLeftOffset(5f);
-        barChartWeek.setExtraRightOffset(5f);
+        ChartHelper.renderWeekChart(requireContext(), barChartWeek, total);
     }
 
     private void renderPieChart(List<Expense> expenses) {
@@ -326,8 +267,10 @@ public class StatisticsFragment extends Fragment {
         float transport = 0;
         float shopping = 0;
         float other = 0;
+        float total = 0;
 
         for (Expense expense : expenses) {
+            total += expense.getAmount();
             switch (expense.getCategory()) {
                 case "Ăn uống":
                     food += expense.getAmount();
@@ -342,51 +285,58 @@ public class StatisticsFragment extends Fragment {
                     other += expense.getAmount();
             }
         }
-        ArrayList<PieEntry> entries = new ArrayList<>();
-        if (food > 0)
-            entries.add(new PieEntry(food, "Ăn uống"));
-        if (transport > 0)
-            entries.add(new PieEntry(transport, "Di chuyển"));
-        if (shopping > 0)
-            entries.add(new PieEntry(shopping, "Mua sắm"));
-        if (other > 0)
-            entries.add(new PieEntry(other, "Khác"));
-
-        PieDataSet dataSet = new PieDataSet(entries, "");
-        ArrayList<Integer> colors = new ArrayList<>();
-
-        colors.add(Color.parseColor("#4CAF50"));
-        colors.add(Color.parseColor("#2196F3"));
-        colors.add(Color.parseColor("#FF9800"));
-        colors.add(Color.parseColor("#F44336"));
-
-        dataSet.setColors(colors);
-        dataSet.setSliceSpace(3f);
-        PieData data = new PieData(dataSet);
-        data.setValueTextSize(12f);
-
-        pieChart.setData(data);
-        pieChart.setUsePercentValues(true);
-        pieChart.getDescription().setEnabled(false);
-        pieChart.getLegend().setEnabled(false);
-        pieChart.setCenterText(CurrencyUtils.formatVnd(expenseStore.getCurrentMonthTotal()));
-        pieChart.setCenterTextSize(16f);
-        pieChart.animateY(1000);
-        pieChart.invalidate();
-    }
-// xử lý tránh lệch giờ
-    private void resetTime(Calendar calendar){
-        calendar.set(Calendar.HOUR_OF_DAY,0);
-        calendar.set(Calendar.MINUTE,0);
-        calendar.set(Calendar.SECOND,0);
-        calendar.set(Calendar.MILLISECOND,0);
+        ChartHelper.renderPieChart(pieChart, requireContext(), food, transport, shopping, other, total);
     }
 
-//Statistic tự cập nhật sau khi thêm/sửa/xóa chi tiêu
+    // xử lý tránh lệch giờ
+    private void resetTime(Calendar calendar) {
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+    }
+
+    private void updateTabUI() {
+
+        // Reset tất cả tab
+        tabMonth.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        tab3Months.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        tabYear.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+
+        tabMonth.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tab3Months.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabYear.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+
+        tabMonth.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tab3Months.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabYear.setTypeface(null, android.graphics.Typeface.NORMAL);
+
+        // Tab đang được chọn
+        switch (currentFilter) {
+            case FILTER_MONTH:
+                tabMonth.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
+                tabMonth.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
+                tabMonth.setTypeface(null, android.graphics.Typeface.BOLD);
+                break;
+
+            case FILTER_3_MONTHS:
+                tab3Months.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
+                tab3Months.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
+                tab3Months.setTypeface(null, android.graphics.Typeface.BOLD);
+                break;
+
+            case FILTER_YEAR:
+                tabYear.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
+                tabYear.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_green));
+                tabYear.setTypeface(null, android.graphics.Typeface.BOLD);
+                break;
+        }
+    }
+
+    //Statistic tự cập nhật sau khi thêm/sửa/xóa chi tiêu
     @Override
     public void onResume() {
         super.onResume();
-
         refreshStatistics();
     }
 }
