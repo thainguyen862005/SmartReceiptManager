@@ -41,6 +41,16 @@ public class ProfileActivity extends AppCompatActivity {
         authViewModel.getUserLiveData().observe(this, firebaseUser -> {
             if (firebaseUser != null) {
                 binding.tvEmail.setText(firebaseUser.getEmail());
+                if (binding.tvName.getText().toString().equals("Nguyen Van Anh") || binding.tvName.getText().toString().isEmpty()) {
+                    binding.tvName.setText(firebaseUser.getDisplayName() != null ? firebaseUser.getDisplayName() : "Người dùng Pro");
+                }
+                if (firebaseUser.getPhotoUrl() != null) {
+                    Glide.with(this)
+                            .load(firebaseUser.getPhotoUrl())
+                            .placeholder(android.R.drawable.sym_def_app_icon)
+                            .circleCrop()
+                            .into(binding.imgAvatar);
+                }
             } else {
                 Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -51,9 +61,10 @@ public class ProfileActivity extends AppCompatActivity {
 
         authViewModel.getUserProfileLiveData().observe(this, userProfile -> {
             if (userProfile != null && userProfile.getProfile() != null) {
-                binding.tvName.setText(
-                        userProfile.getProfile().getFull_name() != null && !userProfile.getProfile().getFull_name().isEmpty()
-                                ? userProfile.getProfile().getFull_name() : "Người dùng Pro");
+                String fullName = userProfile.getProfile().getFull_name();
+                if (fullName != null && !fullName.isEmpty()) {
+                    binding.tvName.setText(fullName);
+                }
                 String avatarUrl = userProfile.getProfile().getAvatar_url();
                 if (avatarUrl != null && !avatarUrl.isEmpty()) {
                     if (avatarUrl.startsWith("http")) {

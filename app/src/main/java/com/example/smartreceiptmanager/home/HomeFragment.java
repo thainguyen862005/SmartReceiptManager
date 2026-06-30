@@ -65,7 +65,6 @@ public class HomeFragment extends Fragment {
         // 2. Khởi tạo AuthViewModel (Sử dụng requireActivity() để dùng chung tầng dữ liệu với Activity)
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
 
-        // 3. Lắng nghe thông tin User để tự động load ảnh đại diện thực tế
         authViewModel.getUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
             if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
                 if (imgHeaderAvatar != null) {
@@ -74,6 +73,31 @@ public class HomeFragment extends Fragment {
                             .placeholder(android.R.drawable.sym_def_app_icon)
                             .circleCrop()
                             .into(imgHeaderAvatar);
+                }
+            }
+        });
+
+        authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
+            if (userProfile != null && userProfile.getProfile() != null && imgHeaderAvatar != null) {
+                String avatarUrl = userProfile.getProfile().getAvatar_url();
+                if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                    if (avatarUrl.startsWith("http")) {
+                        Glide.with(this)
+                                .load(avatarUrl)
+                                .placeholder(android.R.drawable.sym_def_app_icon)
+                                .circleCrop()
+                                .into(imgHeaderAvatar);
+                    } else {
+                        try {
+                            byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
+                            Glide.with(this)
+                                    .load(bytes)
+                                    .placeholder(android.R.drawable.sym_def_app_icon)
+                                    .circleCrop()
+                                    .into(imgHeaderAvatar);
+                        } catch (Exception ignored) {
+                        }
+                    }
                 }
             }
         });
