@@ -84,24 +84,6 @@ public class ScanResultFragment extends Fragment {
 
         binding.tvConfidence.setText("AI gợi ý danh mục: " + category);
 
-        // KIỂM TRA KẾT NỐI MẠNG ĐƠN LẺ
-        com.google.firebase.database.FirebaseDatabase.getInstance(dbUrl)
-                .getReference(".info/connected")
-                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
-                        Boolean connected = snapshot.getValue(Boolean.class);
-                        if (isAdded()) {
-                            if (connected != null && connected) {
-                                Toast.makeText(requireContext(), "✅ Kết nối Realtime DB thành công!", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(requireContext(), "⚠️ Firebase đang ngoại tuyến hoặc sai Rules!", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    }
-                    @Override
-                    public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {}
-                });
 
         // Hiện bộ chip tĩnh cục bộ ngay lập tức để giao diện mượt mà
         renderLocalPredictionChips(category);
@@ -245,7 +227,7 @@ public class ScanResultFragment extends Fragment {
                     .addOnFailureListener(e -> {
                         if (isAdded()) {
                             resetSaveButtonState();
-                            Toast.makeText(requireContext(), "❌ Lỗi ghi Database: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(requireContext(), "❌ Lỗi lưu hóa đơn: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         }
                     });
         }
