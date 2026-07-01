@@ -51,9 +51,19 @@ public class ExpenseListFragment extends Fragment {
     private TextView txtMonthFilter;
     private ImageView imgHeaderAvatar;
     private View cardHeaderAvatar;
+
     private String searchQuery = "";
     private int selectedMonth = -1;
+
+    // Tách 2 list riêng biệt để đọc bất đồng bộ từ Firebase, sau đó gộp vào list tổng
+    private List<Expense> manualExpenses = new ArrayList<>();
+    private List<Expense> recurringExpenses = new ArrayList<>();
     private List<Expense> allExpenses = new ArrayList<>();
+
+    private DatabaseReference transactionsRef;
+    private DatabaseReference recurringRef;
+    private ValueEventListener transactionsListener;
+    private ValueEventListener recurringListener;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -84,21 +94,16 @@ public class ExpenseListFragment extends Fragment {
 
     private void setupSearch() {
         if (edtSearchExpense == null) return;
-
         edtSearchExpense.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 searchQuery = s == null ? "" : s.toString().trim();
                 renderExpenses();
             }
-
             @Override
-            public void afterTextChanged(Editable s) {
-            }
+            public void afterTextChanged(Editable s) {}
         });
     }
 
@@ -111,15 +116,12 @@ public class ExpenseListFragment extends Fragment {
             return;
         }
 
+        // --- LOAD AVATAR ---
         if (imgHeaderAvatar != null) {
             AuthViewModel authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
             authViewModel.getUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
                 if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
-                    Glide.with(this)
-                            .load(firebaseUser.getPhotoUrl())
-                            .placeholder(android.R.drawable.sym_def_app_icon)
-                            .circleCrop()
-                            .into(imgHeaderAvatar);
+                    Glide.with(this).load(firebaseUser.getPhotoUrl()).placeholder(android.R.drawable.sym_def_app_icon).circleCrop().into(imgHeaderAvatar);
                 }
             });
             authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
@@ -127,21 +129,12 @@ public class ExpenseListFragment extends Fragment {
                     String avatarUrl = userProfile.getProfile().getAvatar_url();
                     if (avatarUrl != null && !avatarUrl.isEmpty()) {
                         if (avatarUrl.startsWith("http")) {
-                            Glide.with(this)
-                                    .load(avatarUrl)
-                                    .placeholder(android.R.drawable.sym_def_app_icon)
-                                    .circleCrop()
-                                    .into(imgHeaderAvatar);
+                            Glide.with(this).load(avatarUrl).placeholder(android.R.drawable.sym_def_app_icon).circleCrop().into(imgHeaderAvatar);
                         } else {
                             try {
                                 byte[] bytes = android.util.Base64.decode(avatarUrl, android.util.Base64.DEFAULT);
-                                Glide.with(this)
-                                        .load(bytes)
-                                        .placeholder(android.R.drawable.sym_def_app_icon)
-                                        .circleCrop()
-                                        .into(imgHeaderAvatar);
-                            } catch (Exception ignored) {
-                            }
+                                Glide.with(this).load(bytes).placeholder(android.R.drawable.sym_def_app_icon).circleCrop().into(imgHeaderAvatar);
+                            } catch (Exception ignored) {}
                         }
                     }
                 }
@@ -149,68 +142,126 @@ public class ExpenseListFragment extends Fragment {
         }
 
         String uid = currentUser.getUid();
-        DatabaseReference databaseReference = FirebaseDatabase.getInstance()
-                .getReference("User_Profiles")
-                .child("transactions")
-                .child(uid);
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        transactionsRef = database.getReference("User_Profiles").child("transactions").child(uid);
+        recurringRef = database.getReference("User_Profiles").child("recurring_transactions").child(uid);
 
-        databaseReference.addValueEventListener(new ValueEventListener() {
+        // ==========================================
+        // 1. ĐỌC BẢNG GIAO DỊCH NHẬP TAY (transactions)
+        // ==========================================
+        transactionsListener = transactionsRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (layoutAllExpenses == null) return;
-
-                List<Expense> expenses = new ArrayList<>();
-                if (snapshot.exists() && snapshot.hasChildren()) {
+                if (!isAdded()) return;
+                manualExpenses.clear();
+                if (snapshot.exists()) {
                     for (DataSnapshot data : snapshot.getChildren()) {
-                        Expense expense = new Expense();
-                        expense.setId(data.getKey());
+                        try {
+                            Expense expense = new Expense();
+                            // ĐÁNH DẤU ID: Tiền tố "manual_"
+                            expense.setId("manual_" + data.getKey());
 
-                        Double amount = data.child("amount").getValue(Double.class);
-                        expense.setAmount(amount != null ? amount : 0);
+                            Double amount = data.child("amount").getValue(Double.class);
+                            expense.setAmount(amount != null ? amount : 0);
 
-                        String note = data.child("note").getValue(String.class);
-                        expense.setNote(note != null ? note : "");
+                            String note = data.child("note").getValue(String.class);
+                            expense.setNote(note != null ? note : "");
 
-                        DataSnapshot categorySnap = data.child("category");
-                        String categoryName = "Khác";
-                        if (categorySnap.exists()) {
-                            String name = categorySnap.child("name").getValue(String.class);
-                            if (name != null) categoryName = name;
+                            DataSnapshot categorySnap = data.child("category");
+                            String categoryName = "Khác";
+                            if (categorySnap.exists()) {
+                                String name = categorySnap.child("name").getValue(String.class);
+                                if (name != null) categoryName = name;
+                            }
+                            expense.setCategory(categoryName);
+                            expense.setMerchantName((note != null && !note.trim().isEmpty()) ? note : categoryName);
+
+                            String type = data.child("type").getValue(String.class);
+                            if ("income".equals(type)) expense.setCategory("Thu nhập");
+
+                            String dateStr = data.child("transaction_date").getValue(String.class);
+                            expense.setDate(parseDateStringToLong(dateStr));
+
+                            manualExpenses.add(expense);
+                        } catch (Exception e) {
+                            Log.e("Firebase", "Lỗi parse manual: " + e.getMessage());
                         }
-                        expense.setCategory(categoryName);
-
-                        if (note != null && !note.trim().isEmpty()) {
-                            expense.setMerchantName(note);
-                        } else {
-                            expense.setMerchantName(categoryName);
-                        }
-
-                        String type = data.child("type").getValue(String.class);
-                        if ("income".equals(type)) {
-                            expense.setCategory("Thu nhập");
-                        }
-
-                        String dateStr = data.child("transaction_date").getValue(String.class);
-                        expense.setDate(parseDateStringToLong(dateStr));
-
-                        expenses.add(expense);
                     }
                 }
-
-                Collections.sort(expenses, (e1, e2) -> Long.compare(e2.getDate(), e1.getDate()));
-                allExpenses = expenses;
-                renderExpenses();
+                combineAndRender(); // Gọi hàm gộp chung
             }
-
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("Firebase", "Lỗi tải dữ liệu: " + error.getMessage());
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        // ==========================================
+        // 2. ĐỌC BẢNG ĐỊNH KỲ / QUÉT MÃ (recurring_transactions)
+        // ==========================================
+        recurringListener = recurringRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded()) return;
+                recurringExpenses.clear();
+                if (snapshot.exists()) {
+                    for (DataSnapshot data : snapshot.getChildren()) {
+                        try {
+                            Expense expense = new Expense();
+                            // ĐÁNH DẤU ID: Tiền tố "recurring_"
+                            expense.setId("recurring_" + data.getKey());
+
+                            // Xử lý an toàn số tiền (có thể lưu là int, double, hoặc string)
+                            Object amtObj = data.child("amount").getValue();
+                            if (amtObj instanceof Number) {
+                                expense.setAmount(((Number) amtObj).doubleValue());
+                            } else if (amtObj instanceof String) {
+                                try { expense.setAmount(Double.parseDouble((String) amtObj)); } catch (Exception e) { expense.setAmount(0.0); }
+                            }
+
+                            // Xác định tên hiển thị và danh mục
+                            Object shopObj = data.child("shop_name").getValue();
+                            String shopName = (shopObj instanceof String && !((String) shopObj).trim().isEmpty())
+                                    ? (String) shopObj : "Hóa đơn quét / Định kỳ";
+                            expense.setMerchantName(shopName);
+                            expense.setCategory("Hóa đơn");
+
+                            Object noteObj = data.child("note").getValue();
+                            expense.setNote(noteObj instanceof String ? (String) noteObj : "");
+
+                            // Lấy thời gian từ "created_at"
+                            Object createdAtObj = data.child("created_at").getValue();
+                            if (createdAtObj instanceof Number) {
+                                expense.setDate(((Number) createdAtObj).longValue());
+                            } else if (createdAtObj instanceof String) {
+                                expense.setDate(parseDateStringToLong((String) createdAtObj));
+                            } else {
+                                expense.setDate(System.currentTimeMillis());
+                            }
+
+                            recurringExpenses.add(expense);
+                        } catch (Exception e) {
+                            Log.e("Firebase", "Lỗi parse recurring: " + e.getMessage());
+                        }
+                    }
+                }
+                combineAndRender(); // Gọi hàm gộp chung
             }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
+    // Gộp 2 list lại, sắp xếp theo thời gian mới nhất lên đầu
+    private void combineAndRender() {
+        allExpenses.clear();
+        allExpenses.addAll(manualExpenses);
+        allExpenses.addAll(recurringExpenses);
+
+        Collections.sort(allExpenses, (e1, e2) -> Long.compare(e2.getDate(), e1.getDate()));
+        renderExpenses();
+    }
+
     private void renderExpenses() {
-        if (txtEmpty == null || layoutAllExpenses == null) return;
+        if (txtEmpty == null || layoutAllExpenses == null || !isAdded()) return;
 
         setupMonthFilter(allExpenses);
         List<Expense> expenses = filterExpenses(allExpenses);
@@ -243,7 +294,10 @@ public class ExpenseListFragment extends Fragment {
 
             SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
             String realTime = timeFormat.format(new Date(expense.getDate()));
-            txtMeta.setText(realTime + " • " + expense.getCategory());
+
+            // Thêm nguồn gốc để người dùng dễ phân biệt
+            String source = expense.getId().startsWith("recurring_") ? " • 🧾 Quét mã/Định kỳ" : " • ✏️ Nhập tay";
+            txtMeta.setText(realTime + " • " + expense.getCategory() + source);
 
             if ("Thu nhập".equals(expense.getCategory())) {
                 txtAmount.setText("+ " + CurrencyUtils.formatVnd(expense.getAmount()));
@@ -253,6 +307,7 @@ public class ExpenseListFragment extends Fragment {
                 txtAmount.setTextColor(0xFFB9181E);
             }
 
+            // Gắn sự kiện click
             itemView.setOnClickListener(v -> openExpenseDetail(expense.getId()));
             if (btnDelete != null) {
                 btnDelete.setOnClickListener(v -> openExpenseDetail(expense.getId()));
@@ -278,10 +333,7 @@ public class ExpenseListFragment extends Fragment {
     }
 
     private boolean matchesSearch(Expense expense, String normalizedQuery) {
-        if (normalizedQuery.isEmpty()) {
-            return true;
-        }
-
+        if (normalizedQuery.isEmpty()) return true;
         String searchableText = (
                 expense.getMerchantName() + " " +
                         expense.getCategory() + " " +
@@ -291,27 +343,21 @@ public class ExpenseListFragment extends Fragment {
                         CurrencyUtils.formatVnd(expense.getAmount()) + " " +
                         ((long) expense.getAmount())
         ).toLowerCase(Locale.ROOT);
-
         return searchableText.contains(normalizedQuery);
     }
 
     private void setupMonthFilter(List<Expense> expenses) {
         if (txtMonthFilter == null) return;
-
-        txtMonthFilter.setText(selectedMonth == -1
-                ? "≡  Tất cả tháng"
-                : "≡  Tháng " + (selectedMonth + 1));
+        txtMonthFilter.setText(selectedMonth == -1 ? "≡  Tất cả tháng" : "≡  Tháng " + (selectedMonth + 1));
         txtMonthFilter.setOnClickListener(v -> showMonthMenu());
     }
 
     private void showMonthMenu() {
         PopupMenu popupMenu = new PopupMenu(requireContext(), txtMonthFilter);
-
         popupMenu.getMenu().add(0, 0, 0, "Tất cả tháng");
         for (int month = 0; month < 12; month++) {
             popupMenu.getMenu().add(0, month + 1, month + 1, "Tháng " + (month + 1));
         }
-
         popupMenu.setOnMenuItemClickListener(item -> {
             selectedMonth = item.getItemId() == 0 ? -1 : item.getItemId() - 1;
             renderExpenses();
@@ -327,12 +373,8 @@ public class ExpenseListFragment extends Fragment {
     }
 
     private String getEmptyMessage() {
-        if (!searchQuery.isEmpty()) {
-            return "Không tìm thấy giao dịch phù hợp.";
-        }
-        if (selectedMonth != -1) {
-            return "Không có giao dịch trong tháng đã chọn.";
-        }
+        if (!searchQuery.isEmpty()) return "Không tìm thấy giao dịch phù hợp.";
+        if (selectedMonth != -1) return "Không có giao dịch trong tháng đã chọn.";
         return "Chưa có dữ liệu chi tiêu.";
     }
 
@@ -346,20 +388,30 @@ public class ExpenseListFragment extends Fragment {
         return header;
     }
 
-    private void openExpenseDetail(String expenseId) {
+    private void openExpenseDetail(String prefixedId) {
+        Fragment detailFragment;
+
+        if (prefixedId.startsWith("manual_")) {
+            String realId = prefixedId.replace("manual_", "");
+            detailFragment = ExpenseDetailFragment.newInstance(realId);
+        } else if (prefixedId.startsWith("recurring_")) {
+            String realId = prefixedId.replace("recurring_", "");
+            // 👇 GỌI SANG TRANG CHI TIẾT CỦA RECURRING
+            detailFragment = RecurringDetailFragment.newInstance(realId);
+        } else {
+            return;
+        }
+
         requireActivity()
                 .getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.fragment_container, ExpenseDetailFragment.newInstance(expenseId))
+                .replace(R.id.fragment_container, detailFragment)
                 .addToBackStack(null)
                 .commit();
 
         View bottomNav = requireActivity().findViewById(R.id.custom_bottom_nav);
-        if (bottomNav != null) {
-            bottomNav.setVisibility(View.GONE);
-        }
+        if (bottomNav != null) bottomNav.setVisibility(View.GONE);
     }
-
     private String getCategoryIcon(String category) {
         if ("Ăn uống".equals(category)) return "🍴";
         if ("Di chuyển".equals(category)) return "🚗";
@@ -371,13 +423,9 @@ public class ExpenseListFragment extends Fragment {
     }
 
     private int getCategoryBackground(String category) {
-        if ("Ăn uống".equals(category) || "Thu nhập".equals(category)) {
-            return R.drawable.bg_avatar_green;
-        } else if ("Di chuyển".equals(category)) {
-            return R.drawable.bg_avatar_blue;
-        } else if ("Sinh hoạt".equals(category)) {
-            return R.drawable.bg_avatar_mint;
-        }
+        if ("Ăn uống".equals(category) || "Thu nhập".equals(category)) return R.drawable.bg_avatar_green;
+        else if ("Di chuyển".equals(category)) return R.drawable.bg_avatar_blue;
+        else if ("Sinh hoạt".equals(category)) return R.drawable.bg_avatar_mint;
         return R.drawable.bg_avatar_gray;
     }
 
@@ -389,6 +437,18 @@ public class ExpenseListFragment extends Fragment {
             return date != null ? date.getTime() : System.currentTimeMillis();
         } catch (ParseException e) {
             return System.currentTimeMillis();
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Hủy lắng nghe dữ liệu khi thoát màn hình để tránh rò rỉ bộ nhớ
+        if (transactionsRef != null && transactionsListener != null) {
+            transactionsRef.removeEventListener(transactionsListener);
+        }
+        if (recurringRef != null && recurringListener != null) {
+            recurringRef.removeEventListener(recurringListener);
         }
     }
 }
