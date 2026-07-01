@@ -23,6 +23,14 @@
           }
         },
         {
+          "client_id": "646038986643-n5j3kuaj2ch2ipjd7tjg0mebnotrang3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartreceiptmanager",
+            "certificate_hash": "5d290c4376bb3671b1305773bf0dfe6dcd331e25"
+          }
+        },
+        {
           "client_id": "646038986643-hdbauekphrq3qtl969fachs77ugv7tme.apps.googleusercontent.com",
           "client_type": 3
         }
