@@ -146,14 +146,26 @@ public class ExpenseHistoryFragment extends Fragment {
 
                             // Ngày giờ
                             Object dateObj = data.child("transaction_date").getValue();
+                            long parsedDate;
                             if (dateObj instanceof String) {
-                                expense.setDate(parseDateStringToLong((String) dateObj, "yyyy-MM-dd HH:mm:ss"));
+                                parsedDate = parseDateStringToLong((String) dateObj, "yyyy-MM-dd HH:mm:ss");
                             } else if (dateObj instanceof Number) {
-                                expense.setDate(((Number) dateObj).longValue());
+                                parsedDate = ((Number) dateObj).longValue();
                             } else {
-                                expense.setDate(System.currentTimeMillis());
+                                parsedDate = -1;
                             }
-
+                            if (parsedDate <= 0) {
+                                // fallback sang created_at nếu có, chứ không phải "hôm nay"
+                                Object createdAtObj = data.child("created_at").getValue();
+                                if (createdAtObj instanceof Number) {
+                                    parsedDate = ((Number) createdAtObj).longValue();
+                                } else {
+                                    // Không có dữ liệu ngày hợp lệ nào — đánh dấu rõ ràng thay vì giả định "hôm nay"
+                                    parsedDate = 0; // hoặc bỏ qua record này / gắn cờ riêng để hiển thị "Không rõ ngày"
+                                    Log.e(TAG, "❌ Record " + data.getKey() + " không có ngày hợp lệ");
+                                }
+                            }
+                            expense.setDate(parsedDate);
                             expenseList.add(expense);
                         } catch (Exception e) {
                             Log.e(TAG, "❌ Lỗi parse ID: " + data.getKey() + " - " + e.getMessage());
@@ -281,14 +293,30 @@ public class ExpenseHistoryFragment extends Fragment {
     }
 
     private long parseDateStringToLong(String dateStr, String format) {
-        if (dateStr == null) return System.currentTimeMillis();
-        SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.getDefault());
-        try {
-            Date date = sdf.parse(dateStr);
-            return date != null ? date.getTime() : System.currentTimeMillis();
-        } catch (ParseException e) {
-            return System.currentTimeMillis();
+        if (dateStr == null || dateStr.trim().isEmpty()) return -1;
+
+        String[] patterns = {
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                "dd/MM/yyyy HH:mm:ss",
+                "yyyy-MM-dd"
+        };
+
+        for (String pattern : patterns) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
+                sdf.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+                sdf.setLenient(false);
+                Date date = sdf.parse(dateStr.trim());
+                if (date != null) return date.getTime();
+            } catch (ParseException ignored) {
+                // thử định dạng kế tiếp
+            }
         }
+
+        Log.e(TAG, "⚠️ Không parse được transaction_date: '" + dateStr + "'");
+        return -1; // báo hiệu thất bại, KHÔNG trả về "bây giờ"
     }
 
     @Override

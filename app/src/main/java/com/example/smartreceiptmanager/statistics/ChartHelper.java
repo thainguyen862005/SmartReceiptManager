@@ -2,6 +2,7 @@ package com.example.smartreceiptmanager.statistics;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
 
@@ -19,12 +20,36 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 
 public class ChartHelper {
+
+    public static void renderDayChart(Context context, BarChart chart, List<Expense> expenses, long fromDate, long toDate) {
+        LinkedHashMap<String, Float> dailyMap = new LinkedHashMap<>();
+        Calendar current = Calendar.getInstance();
+        current.setTimeInMillis(fromDate);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM", Locale.getDefault());
+
+        while (current.getTimeInMillis() <= toDate) {
+            dailyMap.put(sdf.format(current.getTime()), 0f);
+            current.add(Calendar.DAY_OF_MONTH, 1);
+        }
+        for (Expense expense : expenses) {
+            String key = sdf.format(new Date(expense.getDate()));
+            if (dailyMap.containsKey(key)) {
+                dailyMap.put(key, dailyMap.get(key) + (float) expense.getAmount());
+            }
+        }
+        renderDayChart(context, chart, dailyMap);
+    }
     public static void renderDayChart(Context context, BarChart chart,  LinkedHashMap<String,Float> dailyMap) {
         //k có dữ liệu
         chart.clear();
@@ -94,7 +119,32 @@ public class ChartHelper {
         chart.setExtraRightOffset(5f);
         chart.invalidate();
     }
-//PieChart
+    //PieChart
+    public static void renderPieChart(PieChart pieChart, Context context, List<Expense> expenses) {
+        float food = 0;
+        float transport = 0;
+        float shopping = 0;
+        float other = 0;
+        float total = 0;
+
+        for (Expense expense : expenses) {
+            total += expense.getAmount();
+            switch (expense.getCategory()) {
+                case "Ăn uống":
+                    food += expense.getAmount();
+                    break;
+                case "Di chuyển":
+                    transport += expense.getAmount();
+                    break;
+                case "Mua sắm":
+                    shopping += expense.getAmount();
+                    break;
+                default:
+                    other += expense.getAmount();
+            }
+        }
+        renderPieChart(pieChart, context, food, transport, shopping, other, total);
+    }
     public static void renderPieChart(PieChart pieChart, Context context, float food, float transport, float shopping, float other, double total){
         ArrayList<PieEntry> entries = new ArrayList<>();
         if (food > 0)
@@ -127,6 +177,45 @@ public class ChartHelper {
         pieChart.setCenterTextSize(16f);
         pieChart.animateY(1000);
         pieChart.invalidate();
+    }
+
+
+    public static void renderCategorySummary(List<Expense> expenses, TextView tvFoodPercent, TextView tvTransportPercent, TextView tvShoppingPercent, TextView tvOtherPercent) {
+        double total = 0;
+        double food = 0;
+        double transport = 0;
+        double shopping = 0;
+        double other = 0;
+
+        for (Expense expense : expenses) {
+            total += expense.getAmount();
+            switch (expense.getCategory()) {
+                case "Ăn uống":
+                    food += expense.getAmount();
+                    break;
+                case "Di chuyển":
+                    transport += expense.getAmount();
+                    break;
+                case "Mua sắm":
+                    shopping += expense.getAmount();
+                    break;
+                default:
+                    other += expense.getAmount();
+            }
+        }
+
+        if (total == 0) {
+            tvFoodPercent.setText("● Ăn uống 0%");
+            tvTransportPercent.setText("● Di chuyển 0%");
+            tvShoppingPercent.setText("● Mua sắm 0%");
+            tvOtherPercent.setText("● Khác 0%");
+            return;
+        }
+
+        tvFoodPercent.setText("● Ăn uống " + (int) (food * 100 / total) + "%");
+        tvTransportPercent.setText("● Di chuyển " + (int) (transport * 100 / total) + "%");
+        tvShoppingPercent.setText("● Mua sắm " + (int) (shopping * 100 / total) + "%");
+        tvOtherPercent.setText("● Khác " + (int) (other * 100 / total) + "%");
     }
 }
 

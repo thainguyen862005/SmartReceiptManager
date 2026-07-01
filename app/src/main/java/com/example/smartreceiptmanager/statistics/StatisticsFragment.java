@@ -134,96 +134,161 @@ public class StatisticsFragment extends Fragment {
         refreshStatistics();
     }
 
-    // ==========================================
-    // LOGIC LẤY & GỘP DỮ LIỆU
-    // ==========================================
+    //xử lý lấy và gộp dữ liệu local và firebase
     private void refreshStatistics() {
-        // 1. Lấy dữ liệu Local
-        List<Expense> localExpenses = expenseStore.getExpensesBetween(fromDate, toDate);
-
-        // 2. Lấy dữ liệu Firebase
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
-            renderAllCharts(localExpenses);
+            renderAllCharts(new ArrayList<>());
             return;
         }
 
-        DatabaseReference dbRef = FirebaseDatabase.getInstance()
+        String uid = currentUser.getUid();
+        DatabaseReference transactionsRef = FirebaseDatabase.getInstance()
+                .getReference("User_Profiles").child("transactions").child(uid);
+
+        transactionsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded()) return;
+                List<Expense> allExpenses = new ArrayList<>();
+
+                for (DataSnapshot data : snapshot.getChildren()) {
+                    String type = data.child("type").getValue(String.class);
+                    if (!"expense".equals(type)) continue;
+
+                    long dateLong = parseTransactionDate(data);
+                    if (dateLong < fromDate || dateLong > toDate) continue;
+
+                    double amount = 0;
+                    Object amtObj = data.child("amount").getValue();
+                    if (amtObj instanceof Number) amount = ((Number) amtObj).doubleValue();
+                    else if (amtObj instanceof String) {
+                        try { amount = Double.parseDouble((String) amtObj); } catch (Exception ignored) {}
+                    }
+
+                    String categoryName = "Khác";
+                    if (data.child("category").exists()) {
+                        Object nameObj = data.child("category").child("name").getValue();
+                        if (nameObj instanceof String) categoryName = (String) nameObj;
+                    }
+
+                    Expense exp = new Expense();
+                    exp.setAmount(amount);
+                    exp.setCategory(categoryName);
+                    exp.setDate(dateLong);
+                    allExpenses.add(exp);
+                }
+
+                loadRecurringAndRender(uid, allExpenses);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (isAdded()) renderAllCharts(new ArrayList<>());
+            }
+        });
+    }
+
+    private long parseTransactionDate(DataSnapshot data) {
+        Object dateObj = data.child("transaction_date").getValue();
+        long parsed = -1;
+        if (dateObj instanceof String) {
+            parsed = parseDateStringToLong((String) dateObj);
+        } else if (dateObj instanceof Number) {
+            parsed = ((Number) dateObj).longValue();
+        }
+        if (parsed > 0) return parsed;
+
+        Object createdAtObj = data.child("created_at").getValue();
+        if (createdAtObj instanceof Number) return ((Number) createdAtObj).longValue();
+        return 0;
+    }
+
+    private void loadRecurringAndRender(String uid, List<Expense> baseExpenses) {
+        DatabaseReference recurringRef = FirebaseDatabase.getInstance()
                 .getReference("User_Profiles")
                 .child("recurring_transactions")
-                .child(currentUser.getUid());
+                .child(uid);
 
-        dbRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        recurringRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!isAdded()) return;
 
-                List<Expense> allExpenses = new ArrayList<>(localExpenses);
+                List<Expense> allExpenses = new ArrayList<>(baseExpenses);
 
                 for (DataSnapshot data : snapshot.getChildren()) {
-                    long dateLong = System.currentTimeMillis();
+                    long dateLong;
                     Object createdAtObj = data.child("created_at").getValue();
-
                     if (createdAtObj instanceof Number) {
                         dateLong = ((Number) createdAtObj).longValue();
                     } else if (createdAtObj instanceof String) {
-                        dateLong = parseDateStringToLong((String) createdAtObj);
+                        long parsed = parseDateStringToLong((String) createdAtObj);
+                        dateLong = (parsed > 0) ? parsed : 0;
+                    } else {
+                        dateLong = 0;
                     }
 
-                    // 3. Lọc theo ngày
-                    if (dateLong >= fromDate && dateLong <= toDate) {
-                        double amount = 0;
-                        Object amtObj = data.child("amount").getValue();
-                        if (amtObj instanceof Number) amount = ((Number) amtObj).doubleValue();
-                        else if (amtObj instanceof String) {
-                            try { amount = Double.parseDouble((String) amtObj); } catch (Exception ignored) {}
-                        }
+                    // Lọc theo khoảng ngày đã chọn, giống baseExpenses
+                    if (dateLong < fromDate || dateLong > toDate) continue;
 
-                        // Gán vào Model
-                        Expense recurringExp = new Expense();
-                        recurringExp.setAmount(amount);
-                        recurringExp.setCategory("Hóa đơn");
-                        recurringExp.setDate(dateLong);
-
-                        allExpenses.add(recurringExp);
+                    double amount = 0;
+                    Object amtObj = data.child("amount").getValue();
+                    if (amtObj instanceof Number) amount = ((Number) amtObj).doubleValue();
+                    else if (amtObj instanceof String) {
+                        try { amount = Double.parseDouble((String) amtObj); } catch (Exception ignored) {}
                     }
+
+                    Expense recurringExp = new Expense();
+                    recurringExp.setAmount(amount);
+                    recurringExp.setCategory("Hóa đơn");
+                    recurringExp.setDate(dateLong);
+
+                    allExpenses.add(recurringExp);
                 }
-                // 4. Cập nhật UI
+
                 renderAllCharts(allExpenses);
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                if (isAdded()) {
-                    renderAllCharts(localExpenses);
-                }
+                if (isAdded()) renderAllCharts(baseExpenses);
             }
         });
     }
 
     private void renderAllCharts(List<Expense> expenses) {
         renderTopCategories(expenses);
-        renderCategorySummary(expenses);
-        renderPieChart(expenses);
-        renderDayChart(expenses);
+        ChartHelper.renderCategorySummary(expenses, tvFoodPercent, tvTransportPercent, tvShoppingPercent, tvOtherPercent);
+        ChartHelper.renderPieChart(pieChart, requireContext(), expenses);
+        ChartHelper.renderDayChart(requireContext(), barChartWeek, expenses, fromDate, toDate);
         updateTabUI();
         updateDateText();
     }
 
     private long parseDateStringToLong(String dateStr) {
-        if (dateStr == null) return System.currentTimeMillis();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        try {
-            Date date = sdf.parse(dateStr);
-            return date != null ? date.getTime() : System.currentTimeMillis();
-        } catch (ParseException e) {
-            return System.currentTimeMillis();
+        if (dateStr == null || dateStr.trim().isEmpty()) return -1;
+
+        String[] patterns = {
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                "dd/MM/yyyy HH:mm:ss",
+                "yyyy-MM-dd"
+        };
+        for (String pattern : patterns) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
+                sdf.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+                sdf.setLenient(false);
+                Date date = sdf.parse(dateStr.trim());
+                if (date != null) return date.getTime();
+            } catch (ParseException ignored) {}
         }
+        return -1;
     }
 
-    // ==========================================
-    // PHẦN RENDER GIAO DIỆN "TOP CHI TIÊU" MỚI
-    // ==========================================
+    //render giao diện top chi tiêu
     private void renderTopCategories(List<Expense> expenses) {
         LinearLayout container = requireView().findViewById(R.id.layoutTopCategoriesContainer);
         if (container != null) {
@@ -243,8 +308,11 @@ public class StatisticsFragment extends Fragment {
             double amount = expense.getAmount();
             totalAmount += amount;
 
-            amountMap.put(category, amountMap.getOrDefault(category, 0.0) + amount);
-            countMap.put(category, countMap.getOrDefault(category, 0) + 1);
+            Double curAmount = amountMap.get(category);
+            amountMap.put(category, (curAmount != null ? curAmount : 0.0) + amount);
+
+            Integer curCount = countMap.get(category);
+            countMap.put(category, (curCount != null ? curCount : 0) + 1);
         }
 
         if (totalAmount == 0) return;
@@ -258,15 +326,7 @@ public class StatisticsFragment extends Fragment {
             int count = countMap.get(category);
             int progress = (int) (amount / totalAmount * 100);
 
-            addTopCategory(
-                    container,
-                    getCategoryIcon(category),
-                    category,
-                    count + " giao dịch",
-                    amount,
-                    progress,
-                    getCategoryColor(category)
-            );
+            addTopCategory(container, getCategoryIcon(category), category, count + " giao dịch", amount, progress, getCategoryColor(category));
         }
     }
 
@@ -327,82 +387,9 @@ public class StatisticsFragment extends Fragment {
         }
     }
 
-    // ==========================================
-    // PHẦN RENDER CÁC BIỂU ĐỒ KHÁC
-    // ==========================================
-    private void renderCategorySummary(List<Expense> expenses) {
-        double total = 0;
-        double food = 0;
-        double transport = 0;
-        double shopping = 0;
-        double other = 0;
 
-        for (Expense expense : expenses) {
-            total += expense.getAmount();
-            switch (expense.getCategory()) {
-                case "Ăn uống": food += expense.getAmount(); break;
-                case "Di chuyển": transport += expense.getAmount(); break;
-                case "Mua sắm": shopping += expense.getAmount(); break;
-                default: other += expense.getAmount();
-            }
-        }
 
-        if (total == 0) {
-            tvFoodPercent.setText("● Ăn uống 0%");
-            tvTransportPercent.setText("● Di chuyển 0%");
-            tvShoppingPercent.setText("● Mua sắm 0%");
-            tvOtherPercent.setText("● Khác 0%");
-            return;
-        }
-
-        tvFoodPercent.setText("● Ăn uống " + (int) (food * 100 / total) + "%");
-        tvTransportPercent.setText("● Di chuyển " + (int) (transport * 100 / total) + "%");
-        tvShoppingPercent.setText("● Mua sắm " + (int) (shopping * 100 / total) + "%");
-        tvOtherPercent.setText("● Khác " + (int) (other * 100 / total) + "%");
-    }
-
-    private void renderDayChart(List<Expense> expenses) {
-        LinkedHashMap<String, Float> dailyMap = new LinkedHashMap<>();
-        Calendar current = Calendar.getInstance();
-        current.setTimeInMillis(fromDate);
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM", Locale.getDefault());
-
-        while (current.getTimeInMillis() <= toDate) {
-            dailyMap.put(sdf.format(current.getTime()), 0f);
-            current.add(Calendar.DAY_OF_MONTH, 1);
-        }
-
-        for (Expense expense : expenses) {
-            String key = sdf.format(new Date(expense.getDate()));
-            if (dailyMap.containsKey(key)) {
-                dailyMap.put(key, dailyMap.get(key) + (float) expense.getAmount());
-            }
-        }
-        ChartHelper.renderDayChart(requireContext(), barChartWeek, dailyMap);
-    }
-
-    private void renderPieChart(List<Expense> expenses) {
-        float food = 0;
-        float transport = 0;
-        float shopping = 0;
-        float other = 0;
-        float total = 0;
-
-        for (Expense expense : expenses) {
-            total += expense.getAmount();
-            switch (expense.getCategory()) {
-                case "Ăn uống": food += expense.getAmount(); break;
-                case "Di chuyển": transport += expense.getAmount(); break;
-                case "Mua sắm": shopping += expense.getAmount(); break;
-                default: other += expense.getAmount();
-            }
-        }
-        ChartHelper.renderPieChart(pieChart, requireContext(), food, transport, shopping, other, total);
-    }
-
-    // ==========================================
-    // CÁC HÀM TIỆN ÍCH (NGÀY, THÁNG, TAB)
-    // ==========================================
+    // các tab && filter
     private void updateTabUI() {
         tabMonth.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.bg_surface));
         tabMonth.setTypeface(null, Typeface.BOLD);

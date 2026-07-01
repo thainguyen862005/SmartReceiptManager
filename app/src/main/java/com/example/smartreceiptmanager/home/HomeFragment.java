@@ -36,10 +36,13 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 public class HomeFragment extends Fragment {
     private TextView txtBalance;
-    private TextView txtWeekTotal;
+    private TextView txtDayTotal;
     private TextView txtEmptyExpense;
     private LinearLayout layoutExpenseList;
     private LinearLayout layoutWeekChart;
@@ -69,7 +72,7 @@ public class HomeFragment extends Fragment {
         cardHeaderAvatar = view.findViewById(R.id.cardHeaderAvatar);
         imgHeaderAvatar = view.findViewById(R.id.imgHeaderAvatar);
         txtBalance = view.findViewById(R.id.txtBalance);
-        txtWeekTotal = view.findViewById(R.id.txtWeekTotal);
+        txtDayTotal = view.findViewById(R.id.txtDayTotal);
         txtEmptyExpense = view.findViewById(R.id.txtEmptyExpense);
         layoutExpenseList = view.findViewById(R.id.layoutExpenseList);
         layoutWeekChart = view.findViewById(R.id.layoutWeekChart);
@@ -120,21 +123,6 @@ public class HomeFragment extends Fragment {
         String uid = currentUser.getUid();
         FirebaseDatabase database = FirebaseDatabase.getInstance();
 
-        // --- ĐOẠN ĐỌC SỐ DƯ VÍ TỪ FIREBASE ---
-        walletRef = database.getReference("User_Profiles").child("wallets").child(uid).child("wallet_default_01");
-        walletListener = walletRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    Long totalAmount = snapshot.child("total_amount").getValue(Long.class);
-                    if (totalAmount != null) {
-                        txtBalance.setText(CurrencyUtils.formatVnd(totalAmount));
-                    }
-                }
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
 
         // --- ĐOẠN ĐỌC DANH SÁCH GIAO DỊCH TỪ FIREBASE ---
         transactionsRef = database.getReference("User_Profiles").child("transactions").child(uid);
@@ -142,38 +130,43 @@ public class HomeFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 List<Expense> firebaseExpenses = new ArrayList<>();
-                long totalExpenseThisMonth = 0;
 
-                // Vòng lặp quét qua từng transaction_id
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     String type = snapshot.child("type").getValue(String.class);
+                    if (!"expense".equals(type)) continue;
 
-                    // Chỉ lấy những giao dịch là khoản chi (expense)
-                    if ("expense".equals(type)) {
-                        String id = snapshot.getKey();
-                        Long amount = snapshot.child("amount").getValue(Long.class);
-                        String note = snapshot.child("note").getValue(String.class);
-                        String categoryName = snapshot.child("category").child("name").getValue(String.class);
+                    String id = snapshot.getKey();
+                    Long amount = snapshot.child("amount").getValue(Long.class);
+                    String note = snapshot.child("note").getValue(String.class);
+                    String categoryName = snapshot.child("category").child("name").getValue(String.class);
+
+                    // ĐỒNG BỘ NGÀY với ExpenseHistoryFragment: ưu tiên đọc "transaction_date"
+                    long finalTime;
+                    Object dateObj = snapshot.child("transaction_date").getValue();
+                    if (dateObj instanceof String) {
+                        long parsed = parseDateStringToLong((String) dateObj);
+                        if (parsed > 0) {
+                            finalTime = parsed;
+                        } else {
+                            Long createdAt = snapshot.child("created_at").getValue(Long.class);
+                            finalTime = (createdAt != null) ? createdAt : 0;
+                        }
+                    } else if (dateObj instanceof Number) {
+                        finalTime = ((Number) dateObj).longValue();
+                    } else {
                         Long createdAt = snapshot.child("created_at").getValue(Long.class);
-
-                        long finalAmount = (amount != null) ? amount : 0;
-                        long finalTime = (createdAt != null) ? createdAt : System.currentTimeMillis();
-                        String merchant = (note != null && !note.isEmpty()) ? note : "Chi tiêu không tên";
-
-                        // Ánh xạ về Object Expense
-                        Expense expense = new Expense(id, merchant, finalAmount, categoryName, finalTime, note, "", false, finalTime, finalTime);
-
-                        // Đẩy các giao dịch mới nhất lên đầu danh sách hiển thị
-                        firebaseExpenses.add(0, expense);
-
-                        // Tính tổng tiền chi tiêu tạm thời
-                        totalExpenseThisMonth += finalAmount;
+                        finalTime = (createdAt != null) ? createdAt : 0;
                     }
+
+                    long finalAmount = (amount != null) ? amount : 0;
+                    String merchant = (note != null && !note.isEmpty()) ? note : "Chi tiêu không tên";
+
+                    Expense expense = new Expense(id, merchant, finalAmount, categoryName, finalTime, note, "", false, finalTime, finalTime);
+                    firebaseExpenses.add(expense);
                 }
 
-                // Cập nhật giao diện với dữ liệu Firebase
-                renderExpenses(firebaseExpenses, totalExpenseThisMonth, uid);
-                renderWeekChart(firebaseExpenses);
+                // Gộp thêm recurring_transactions rồi mới render (giống Statistics)
+                loadRecurringAndRender(uid, firebaseExpenses);
             }
 
             @Override
@@ -182,10 +175,109 @@ public class HomeFragment extends Fragment {
             }
         });
     }
+    private void loadRecurringAndRender(String uid, List<Expense> baseExpenses) {
+        DatabaseReference recurringRef = FirebaseDatabase.getInstance()
+                .getReference("User_Profiles")
+                .child("recurring_transactions")
+                .child(uid);
 
+        recurringRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!isAdded()) return;
+
+                List<Expense> allExpenses = new ArrayList<>(baseExpenses);
+
+                for (DataSnapshot data : snapshot.getChildren()) {
+                    long dateLong = System.currentTimeMillis();
+                    Object createdAtObj = data.child("created_at").getValue();
+
+                    if (createdAtObj instanceof Number) {
+                        dateLong = ((Number) createdAtObj).longValue();
+                    } else if (createdAtObj instanceof String) {
+                        dateLong = parseDateStringToLong((String) createdAtObj);
+                    }
+
+                    double amount = 0;
+                    Object amtObj = data.child("amount").getValue();
+                    if (amtObj instanceof Number) amount = ((Number) amtObj).doubleValue();
+                    else if (amtObj instanceof String) {
+                        try { amount = Double.parseDouble((String) amtObj); } catch (Exception ignored) {}
+                    }
+
+                    String id = data.getKey();
+                    Expense recurringExp = new Expense(
+                            id, "Hóa đơn định kỳ", (long) amount, "Hóa đơn",
+                            dateLong, "", "", false, dateLong, dateLong
+                    );
+                    allExpenses.add(recurringExp);
+                }
+
+                long totalAllExpense = 0;
+                for (Expense e : allExpenses) {
+                    totalAllExpense += (long) e.getAmount();
+                }
+
+                renderExpenses(allExpenses, totalAllExpense, uid);
+                renderWeekChart(allExpenses);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (!isAdded()) return;
+                long totalBase = 0;
+                for (Expense e : baseExpenses) totalBase += (long) e.getAmount();
+                renderExpenses(baseExpenses, totalBase, uid);
+                renderWeekChart(baseExpenses);
+            }
+        });
+    }
+
+    // Đồng bộ format parse ngày với ExpenseHistoryFragment ("yyyy-MM-dd HH:mm:ss")
+    private long parseDateStringToLong(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return -1;
+
+        String[] patterns = {
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                "dd/MM/yyyy HH:mm:ss",
+                "yyyy-MM-dd"
+        };
+
+        for (String pattern : patterns) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.getDefault());
+                sdf.setTimeZone(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+                sdf.setLenient(false);
+                java.util.Date date = sdf.parse(dateStr.trim());
+                if (date != null) return date.getTime();
+            } catch (ParseException ignored) {}
+        }
+        return -1;
+    }
+
+    /*
+    chi tiêu tronng ngày
+     */
+    private double getTodayTotal(List<Expense> expenses) {
+        Calendar today = Calendar.getInstance();
+        double total = 0;
+        for (Expense expense : expenses) {
+            Calendar expDate = Calendar.getInstance();
+            expDate.setTimeInMillis(expense.getDate());
+            if (today.get(Calendar.YEAR) == expDate.get(Calendar.YEAR)
+                    && today.get(Calendar.DAY_OF_YEAR) == expDate.get(Calendar.DAY_OF_YEAR)) {
+                total += expense.getAmount();
+            }
+        }
+        return total;
+    }
     private void renderExpenses(List<Expense> expenses, long totalExpense, String uid) {
         layoutExpenseList.removeAllViews();
-        txtWeekTotal.setText(CurrencyUtils.formatVnd(totalExpense));
+
+        txtBalance.setText(CurrencyUtils.formatVnd(totalExpense));
+        txtDayTotal.setText(CurrencyUtils.formatVnd((long) getTodayTotal(expenses)));
 
         if (expenses.isEmpty()) {
             txtEmptyExpense.setVisibility(View.VISIBLE);
@@ -262,7 +354,7 @@ public class HomeFragment extends Fragment {
 
         layoutWeekChart.removeAllViews();
         String[] labels = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
-        long anchorDate = expenses.isEmpty() ? System.currentTimeMillis() : expenses.get(0).getDate();
+        long anchorDate = System.currentTimeMillis();
         int activeIndex = getWeekIndex(anchorDate);
         double[] totals = new double[7];
         double maxTotal = 0;
