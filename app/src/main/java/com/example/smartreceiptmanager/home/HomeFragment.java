@@ -1,4 +1,5 @@
 package com.example.smartreceiptmanager.home;
+import com.example.smartreceiptmanager.expense.RecurringDetailFragment;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
+import java.util.Collections;
 
 public class HomeFragment extends Fragment {
     private TextView txtBalance;
@@ -167,9 +169,11 @@ public class HomeFragment extends Fragment {
                     }
 
                     long finalAmount = (amount != null) ? amount : 0;
-                    String merchant = (note != null && !note.isEmpty()) ? note : "Chi tiêu không tên";
+                    String merchant = (note != null && !note.isEmpty())
+                            ? note
+                            : (categoryName != null && !categoryName.isEmpty() ? categoryName : "Chi tiêu không tên");
 
-                    Expense expense = new Expense(id, merchant, finalAmount, categoryName, finalTime, note, "", false, finalTime, finalTime);
+                    Expense expense = new Expense("manual_" + id, merchant, finalAmount, categoryName, finalTime, note, "", false, finalTime, finalTime);
                     firebaseExpenses.add(expense);
                 }
 
@@ -212,14 +216,21 @@ public class HomeFragment extends Fragment {
                     else if (amtObj instanceof String) {
                         try { amount = Double.parseDouble((String) amtObj); } catch (Exception ignored) {}
                     }
-
+                    /**
+                     * Sửa tên giao dịch định kỳ: nếu shop_name rỗng thì hiển thị "Hóa đơn quét / Định kỳ" thay vì để trống
+                     */
                     String id = data.getKey();
+                    Object shopObj = data.child("shop_name").getValue();
+                    String shopName = (shopObj instanceof String && !((String) shopObj).trim().isEmpty())
+                            ? (String) shopObj : "Hóa đơn quét / Định kỳ";
                     Expense recurringExp = new Expense(
-                            id, "Hóa đơn định kỳ", (long) amount, "Hóa đơn",
+                            "recurring_" + id, shopName, (long) amount, "Hóa đơn",
                             dateLong, "", "", false, dateLong, dateLong
                     );
                     allExpenses.add(recurringExp);
                 }
+                // Sắp xếp theo ngày mới nhất
+                Collections.sort(allExpenses, (e1, e2) -> Long.compare(e2.getDate(), e1.getDate()));
 
                 long totalAllExpense = 0;
                 for (Expense e : allExpenses) {
@@ -314,22 +325,37 @@ public class HomeFragment extends Fragment {
 
             itemView.setOnClickListener(v -> openExpenseDetail(expense.getId()));
             btnDelete.setOnClickListener(v -> {
-                if (transactionsRef != null) {
-                    transactionsRef.child(expense.getId()).removeValue()
+                String rawId = expense.getId().replace("manual_", "").replace("recurring_", "");
+                if (expense.getId().startsWith("manual_") && transactionsRef != null) {
+                    transactionsRef.child(rawId).removeValue()
                             .addOnSuccessListener(aVoid -> Toast.makeText(requireContext(), "Đã xóa khoản chi", Toast.LENGTH_SHORT).show())
                             .addOnFailureListener(e -> Toast.makeText(requireContext(), "Xóa thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                } else {
+                    // Giao dịch định kỳ: nên mở màn chi tiết định kỳ để xóa đúng chỗ, thay vì xóa nhầm node
+                    openExpenseDetail(expense.getId());
                 }
             });
 
             layoutExpenseList.addView(itemView);
         }
     }
+    // Điều hướng đúng prefix
+    private void openExpenseDetail(String prefixedId) {
+        Fragment detailFragment;
+        if (prefixedId.startsWith("manual_")) {
+            String realId = prefixedId.replace("manual_", "");
+            detailFragment = ExpenseDetailFragment.newInstance(realId);
+        } else if (prefixedId.startsWith("recurring_")) {
+            String realId = prefixedId.replace("recurring_", "");
+            detailFragment = RecurringDetailFragment.newInstance(realId);
+        } else {
+            return; // ID không hợp lệ, không mở gì cả
+        }
 
-    private void openExpenseDetail(String expenseId) {
         requireActivity()
                 .getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.fragment_container, ExpenseDetailFragment.newInstance(expenseId))
+                .replace(R.id.fragment_container, detailFragment)
                 .addToBackStack(null)
                 .commit();
 
