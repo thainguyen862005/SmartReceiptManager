@@ -119,6 +119,7 @@ public class ExpenseListFragment extends Fragment {
         // --- LOAD AVATAR ---
         if (imgHeaderAvatar != null) {
             AuthViewModel authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
+
             authViewModel.getUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
                 if (firebaseUser != null && firebaseUser.getPhotoUrl() != null) {
                     Glide.with(this).load(firebaseUser.getPhotoUrl()).placeholder(android.R.drawable.sym_def_app_icon).circleCrop().into(imgHeaderAvatar);
