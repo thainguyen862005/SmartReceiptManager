@@ -79,7 +79,15 @@ public class HomeFragment extends Fragment {
 
         // 1. Quản lý thông tin Avatar người dùng
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
-
+        /**
+         * Đã lấy thông tin người dùng từ FirebaseAuth và UserProfile, ưu tiên hiển thị avatar từ UserProfile nếu có, nếu không thì lấy từ FirebaseAuth.
+         * Nếu cả hai đều không có avatar, sẽ hiển thị biểu tượng mặc định.
+         */
+        authViewModel.getUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
+            if (firebaseUser != null && firebaseUser.getPhotoUrl() != null && imgHeaderAvatar != null) {
+                Glide.with(this).load(firebaseUser.getPhotoUrl()).placeholder(android.R.drawable.sym_def_app_icon).circleCrop().into(imgHeaderAvatar);
+            }
+        });
         authViewModel.getUserProfileLiveData().observe(getViewLifecycleOwner(), userProfile -> {
             if (userProfile != null && userProfile.getProfile() != null && imgHeaderAvatar != null) {
                 String avatarUrl = userProfile.getProfile().getAvatar_url();
